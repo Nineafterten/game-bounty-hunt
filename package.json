@@ -1,0 +1,10 @@
+{
+  "name": "game-bounty-hunt",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Dad's Annual Game Bounty Hunt — a config-driven, single-file bounty board for tracking a kid's classic-game challenges.",
+  "scripts": {
+    "start": "python3 -m http.server 4177",
+    "release": "echo \"Run: npm version patch|minor|major, then keep APP_VERSION in index.html in sync, then git push --follow-tags\""
+  }
+}

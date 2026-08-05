@@ -1,0 +1,2546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#fef5e0">
+<title>Game Bounty Hunt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@10..48,500;10..48,700;10..48,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── DESIGN TOKENS ──────────────────────────────────────────────────────── */
+:root {
+  /* Light theme (default — sun-bleached parchment) */
+  --bg: #fef5e0;
+  --bg-grain: rgba(217, 119, 41, 0.04);
+  --surface: #fffaef;
+  --surface-2: #fdeec9;
+  --ink: #2a1f14;
+  --ink-soft: #5b4a36;
+  --ink-faint: #8a7659;
+  --rule: #e8d4a8;
+  --rule-soft: #f0e0bd;
+
+  --bounty: #d97720;          /* primary orange — sun, "wanted" */
+  --bounty-soft: #f4a256;
+  --bounty-tint: rgba(217, 119, 41, 0.1);
+  --cash: #2d8659;            /* money green — used for $ */
+  --cash-tint: rgba(45, 134, 89, 0.12);
+  --gold: #e0a82e;            /* completion gold */
+  --gold-deep: #b48420;
+  --gold-tint: rgba(224, 168, 46, 0.18);
+  --sky: #4a8db5;             /* accent sky-blue */
+  --rose: #c4527a;            /* hint pin */
+  --danger: #c4523a;         /* reject / game over */
+  --danger-soft: #e07a5f;
+
+  --shadow-card: 0 1px 2px rgba(74, 50, 20, 0.06), 0 8px 24px -10px rgba(74, 50, 20, 0.18);
+  --shadow-lift: 0 4px 8px rgba(74, 50, 20, 0.08), 0 16px 32px -10px rgba(74, 50, 20, 0.25);
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-lg: 22px;
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+}
+
+/* Dark theme — sunset/dusk */
+:root[data-theme="dark"] {
+  --bg: #161220;
+  --bg-grain: rgba(255, 200, 130, 0.025);
+  --surface: #1f1a2c;
+  --surface-2: #2a2238;
+  --ink: #f4ecd8;
+  --ink-soft: #c4b89c;
+  --ink-faint: #8a7e68;
+  --rule: #3a2f4a;
+  --rule-soft: #2d2438;
+
+  --bounty: #f59c4f;
+  --bounty-soft: #ffb877;
+  --bounty-tint: rgba(245, 156, 79, 0.14);
+  --cash: #5dc991;
+  --cash-tint: rgba(93, 201, 145, 0.18);
+  --gold: #f3c44a;
+  --gold-deep: #c8a134;
+  --gold-tint: rgba(243, 196, 74, 0.22);
+  --sky: #7fbce0;
+  --rose: #e87aa3;
+  --danger: #ef7a5a;
+  --danger-soft: #f59275;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 4px 12px rgba(0, 0, 0, 0.5), 0 18px 36px -10px rgba(0, 0, 0, 0.7);
+}
+
+/* ─── RESET ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding-bottom: 80px;
+  position: relative;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* Subtle grain texture overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  z-index: 1;
+}
+:root[data-theme="dark"] body::before { mix-blend-mode: overlay; opacity: 0.3; }
+
+main { position: relative; z-index: 2; }
+
+/* Visibility helpers for Manage-only affordances */
+.manage-only { display: none !important; }
+body.mode-manage .manage-only { display: inline-flex !important; }
+body.mode-manage .manage-only.block { display: flex !important; }
+.user-only { display: inline-flex; }
+body.mode-manage .user-only { display: none !important; }
+
+/* ─── LAYOUT ─────────────────────────────────────────────────────────────── */
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 20px 0;
+}
+
+/* ─── HEADER ─────────────────────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.brand-mark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-mark .dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--bounty);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+body.mode-manage .brand-mark .dot { background: var(--danger); }
+.mode-badge {
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 100px;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  letter-spacing: 0.12em;
+}
+body.mode-manage .mode-badge { color: #fff; background: var(--danger); border-color: var(--danger); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.icon-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--ink); transform: translateY(-1px); }
+.icon-btn:focus-visible { outline: 2px solid var(--bounty); outline-offset: 2px; }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn.active { background: var(--bounty); color: #fff; border-color: var(--bounty); }
+
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+/* NAV (Board / History) */
+.nav-tabs {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+  padding: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.nav-tabs button {
+  padding: 6px 12px;
+  border-radius: 100px;
+  color: var(--ink-faint);
+  font-weight: 700;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+.nav-tabs button.active { background: var(--bounty); color: #fff; }
+
+/* HERO */
+.hero {
+  position: relative;
+  margin-bottom: 32px;
+  animation: fadeUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bounty);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: '';
+  display: inline-block;
+  width: 22px; height: 1px;
+  background: var(--bounty);
+  opacity: 0.6;
+}
+.hero-eyebrow::after { flex: 1; }
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(34px, 7vw, 60px);
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.hero h1 .accent {
+  color: var(--bounty);
+  display: inline-block;
+  position: relative;
+}
+.hero h1 .accent::after {
+  content: '';
+  position: absolute;
+  left: -2%; right: -2%;
+  bottom: 4%;
+  height: 8px;
+  background: var(--gold);
+  opacity: 0.35;
+  z-index: -1;
+  transform: skewX(-8deg);
+  border-radius: 2px;
+}
+.hero-year {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3.5vw, 28px);
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink-faint);
+  letter-spacing: -0.01em;
+}
+.hero-year:empty { display: none; }
+.hero-tag {
+  margin-top: 14px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  max-width: 540px;
+}
+.hero-edit {
+  position: absolute;
+  top: 0; right: 0;
+}
+
+/* ─── DASHBOARD ──────────────────────────────────────────────────────────── */
+.dashboard {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 24px 24px 22px;
+  margin-bottom: 20px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  animation: fadeUp 0.7s 0.1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  overflow: hidden;
+}
+.dashboard::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, var(--bounty-tint) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.stat { position: relative; z-index: 1; }
+.stat-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(28px, 5.5vw, 40px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.stat-num .total {
+  font-size: 0.55em;
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+.stat-num.cash { color: var(--cash); }
+.stat-num.gold { color: var(--gold-deep); }
+:root[data-theme="dark"] .stat-num.gold { color: var(--gold); }
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-top: 4px;
+}
+
+/* Outcome breakdown pills */
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+.bd-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bd-pill b { font-weight: 700; color: var(--ink); }
+.bd-pill .dotc { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.bd-pill.open .dotc { background: var(--sky); }
+.bd-pill.complete .dotc { background: var(--gold); }
+.bd-pill.withdrawn .dotc { background: var(--ink-faint); }
+.bd-pill.rejected .dotc { background: var(--danger); }
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 1;
+}
+.progress-track {
+  flex: 1;
+  height: 10px;
+  background: var(--rule-soft);
+  border-radius: 100px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--bounty) 0%, var(--gold) 100%);
+  border-radius: 100px;
+  transition: width 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.progress-pct {
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ─── TOOLBAR / CONTROLS ─────────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.7s 0.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.controls-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.sort-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 8px 32px 8px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a7659' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: all 0.2s ease;
+}
+.sort-select:hover, .sort-select:focus { border-color: var(--bounty); outline: none; }
+.dir-btn {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.dir-btn:hover { border-color: var(--bounty); color: var(--ink); }
+.dir-btn .arrow { font-size: 14px; line-height: 1; }
+
+/* Layout (card/compact) segmented toggle */
+.seg {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+.seg button {
+  width: 32px; height: 28px;
+  border-radius: 6px;
+  display: grid; place-items: center;
+  color: var(--ink-faint);
+  transition: all 0.2s ease;
+}
+.seg button svg { width: 15px; height: 15px; }
+.seg button.active { background: var(--bounty); color: #fff; }
+
+.spacer { flex: 1; }
+
+/* Toolbar action buttons */
+.tb-btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.tb-btn svg { width: 14px; height: 14px; }
+.tb-btn:hover { border-color: var(--bounty); color: var(--bounty); }
+.tb-btn.primary { background: var(--bounty); color: #fff; border-color: var(--bounty); }
+.tb-btn.primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; }
+.tb-btn.danger:hover { border-color: var(--danger); color: var(--danger); background: rgba(196,82,58,0.08); }
+
+/* ─── CARD GRID ──────────────────────────────────────────────────────────── */
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease, opacity 0.4s ease, filter 0.4s ease;
+  animation: fadeUp 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  grid-template-areas:
+    "cover head"
+    "cover meta"
+    "desc desc"
+    "tags tags"
+    "status status"
+    "foot foot";
+  gap: 14px 16px;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--bounty-soft);
+}
+
+/* COMPLETE state */
+.card.is-complete {
+  background: linear-gradient(135deg, var(--gold-tint) 0%, var(--bounty-tint) 100%);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 8px 24px -8px var(--gold-tint);
+}
+.card.is-complete::after {
+  content: 'BOUNTY CLAIMED';
+  position: absolute;
+  top: 48px; right: -22px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--gold-deep);
+  background: var(--surface);
+  padding: 5px 36px;
+  transform: rotate(38deg);
+  border-top: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.18), 0 0 0 1px rgba(224,168,46,0.3);
+  animation: stampIn 0.6s cubic-bezier(0.5, 1.5, 0.5, 1) both;
+  z-index: 5;
+  pointer-events: none;
+}
+:root[data-theme="dark"] .card.is-complete::after { color: var(--gold); background: var(--surface-2); }
+@keyframes stampIn {
+  0% { opacity: 0; transform: rotate(38deg) scale(2.2); }
+  60% { opacity: 1; transform: rotate(38deg) scale(0.9); }
+  100% { opacity: 1; transform: rotate(38deg) scale(1); }
+}
+
+/* WITHDRAWN state (neutral) */
+.card.is-withdrawn {
+  opacity: 0.82;
+  filter: saturate(0.55);
+  border-style: dashed;
+}
+.card.is-withdrawn:hover { opacity: 1; }
+
+/* REJECTED state (negative — game over) */
+.card.is-rejected {
+  filter: grayscale(0.82) contrast(0.92);
+  opacity: 0.72;
+  border-color: var(--danger);
+}
+.card.is-rejected:hover { opacity: 0.92; }
+.card.is-rejected::after {
+  content: 'GAME OVER';
+  position: absolute;
+  top: 46px; right: -20px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: #fff;
+  background: var(--danger);
+  padding: 5px 34px;
+  transform: rotate(38deg);
+  border-top: 2px solid rgba(0,0,0,0.15);
+  border-bottom: 2px solid rgba(0,0,0,0.15);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  animation: gameOverIn 0.65s cubic-bezier(0.5, 1.3, 0.5, 1) both;
+  z-index: 5;
+  pointer-events: none;
+}
+@keyframes gameOverIn {
+  0% { opacity: 0; transform: rotate(38deg) scale(2.4) skewX(-8deg); }
+  40% { opacity: 1; transform: rotate(38deg) scale(0.92) skewX(4deg); }
+  60% { transform: rotate(38deg) scale(1.02) skewX(-3deg); }
+  100% { opacity: 1; transform: rotate(38deg) scale(1) skewX(0); }
+}
+.card.womp { animation: cardShake 0.5s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+@keyframes cardShake {
+  0%,100% { transform: translateX(0); }
+  15% { transform: translateX(-7px) rotate(-0.5deg); }
+  30% { transform: translateX(6px) rotate(0.4deg); }
+  45% { transform: translateX(-5px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
+/* COVER (stylized) */
+.cover {
+  grid-area: cover;
+  width: 64px; height: 84px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  text-align: center;
+  line-height: 1;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.12);
+  user-select: none;
+  align-self: start;
+}
+.cover-glyph { position: relative; z-index: 2; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
+.cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+  z-index: 1;
+}
+.cover.has-art::before { z-index: 3; opacity: 0.4; }
+.cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  z-index: 1;
+}
+
+/* HEAD: title + ordinal */
+.card-head {
+  grid-area: head;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.card-ordinal {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+.card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(18px, 3vw, 22px);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  word-wrap: break-word;
+}
+
+/* Manage tools on card (edit / delete / reorder) */
+.card-manage {
+  position: absolute;
+  top: 12px; right: 12px;
+  gap: 6px;
+  z-index: 6;
+}
+.card-manage .mini {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  transition: all 0.15s ease;
+}
+.card-manage .mini:hover { border-color: var(--bounty); color: var(--bounty); }
+.card-manage .mini.del:hover { border-color: var(--danger); color: var(--danger); }
+.card-manage .mini svg { width: 14px; height: 14px; }
+
+/* META: bounty, system, players */
+.card-meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.bounty-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+  background: var(--cash);
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: -0.01em;
+}
+.bounty-pill .dollar { font-size: 0.8em; opacity: 0.85; margin-right: 1px; }
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+}
+.meta-pill svg { width: 12px; height: 12px; }
+.players-note {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid var(--rule);
+  text-transform: lowercase;
+}
+
+.meta-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gold-deep);
+  margin-left: auto;
+}
+:root[data-theme="dark"] .meta-rating { color: var(--gold); }
+.meta-rating svg { width: 13px; height: 13px; fill: currentColor; }
+
+/* DESCRIPTION */
+.card-desc {
+  grid-area: desc;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+.card-desc:empty { display: none; }
+.card-desc-text {
+  display: block;
+  max-height: 3.1em;
+  overflow: hidden;
+  position: relative;
+  transition: max-height 0.4s ease;
+}
+.card-desc-text.expanded { max-height: 40em; }
+.card-desc-toggle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bounty);
+  font-weight: 700;
+  margin-top: 4px;
+  padding: 2px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.card-desc-toggle:hover { color: var(--gold-deep); }
+:root[data-theme="dark"] .card-desc-toggle:hover { color: var(--gold); }
+.card-desc-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.05em;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--rule);
+}
+.card-desc-meta strong { color: var(--ink-soft); font-weight: 700; }
+
+/* TAGS / OBJECTIVES */
+.card-tags {
+  grid-area: tags;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+}
+.card-tags:empty { display: none; }
+.tags-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bounty);
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tags-label::before { content: '◆'; color: var(--gold-deep); font-size: 10px; }
+:root[data-theme="dark"] .tags-label::before { color: var(--gold); }
+.objective-list { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.objective-list li {
+  font-size: 13.5px;
+  color: var(--ink);
+  padding-left: 18px;
+  position: relative;
+  line-height: 1.45;
+}
+.objective-list li::before {
+  content: '';
+  position: absolute;
+  left: 4px; top: 8px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--bounty);
+}
+
+/* STATUS ACTIONS */
+.status-row {
+  grid-area: status;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sa {
+  flex: 1;
+  min-width: 92px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-soft);
+  transition: all 0.18s ease;
+}
+.sa svg { width: 15px; height: 15px; }
+.sa:hover { transform: translateY(-1px); }
+.sa-complete:hover { border-color: var(--gold); color: var(--gold-deep); }
+.sa-withdraw:hover { border-color: var(--ink-faint); color: var(--ink); }
+.sa-reject:hover { border-color: var(--danger); color: var(--danger); }
+.sa.active.sa-complete { background: var(--gold); border-color: var(--gold); color: #fff; }
+.sa.active.sa-withdraw { background: var(--ink-faint); border-color: var(--ink-faint); color: #fff; }
+.sa.active.sa-reject { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* FOOT */
+.card-foot {
+  grid-area: foot;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+.guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  color: var(--sky);
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 1px dashed var(--rule);
+  transition: all 0.2s ease;
+}
+.guide-link:hover { color: var(--bounty); border-color: var(--bounty); background: var(--bounty-tint); }
+.guide-link svg { width: 12px; height: 12px; }
+
+.hint-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--rose);
+  background: rgba(196, 82, 122, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(196, 82, 122, 0.3);
+  animation: pinIn 0.4s cubic-bezier(0.5, 1.5, 0.5, 1) both;
+}
+.hint-pin svg { width: 11px; height: 11px; }
+@keyframes pinIn {
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ─── COMPACT LAYOUT ─────────────────────────────────────────────────────── */
+.cards.compact { gap: 8px; }
+.cards.compact .card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  grid-template-columns: none;
+  grid-template-areas: none;
+}
+.cards.compact .card:hover { transform: none; }
+.cards.compact .cover { width: 34px; height: 44px; font-size: 15px; border-radius: 6px; }
+.cards.compact .card-head { flex: 1; min-width: 0; gap: 1px; }
+.cards.compact .card-ordinal { font-size: 9px; }
+.cards.compact .card-title { font-size: 15px; }
+.cards.compact .compact-sys {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cards.compact .bounty-pill { font-size: 14px; padding: 3px 8px; flex-shrink: 0; }
+.cards.compact .status-row { flex: 0 0 auto; gap: 4px; }
+.cards.compact .sa {
+  flex: 0 0 auto;
+  min-width: 0;
+  width: 34px; height: 34px;
+  padding: 0;
+  border-radius: 8px;
+}
+.cards.compact .sa span { display: none; }
+.cards.compact .card-manage { position: static; display: none; }
+body.mode-manage .cards.compact .card-manage { display: flex; }
+.cards.compact .is-complete::after,
+.cards.compact .is-rejected::after { display: none; }
+.cards.compact .card.is-complete { box-shadow: 0 0 0 1px var(--gold); }
+
+/* ─── HISTORY ────────────────────────────────────────────────────────────── */
+.history-wrap { display: flex; flex-direction: column; gap: 16px; }
+.hist-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.hist-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
+}
+.hist-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.hist-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: -0.01em; }
+.hist-sub { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); letter-spacing: 0.05em; margin-top: 2px; }
+.hist-stats { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.hist-toggle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--bounty);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.hist-games { margin-top: 12px; border-top: 1px dashed var(--rule); padding-top: 12px; display: none; flex-direction: column; gap: 6px; }
+.hist-games.open { display: flex; }
+.hist-game { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.hist-game .hg-status { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; font-weight: 700; }
+.hg-status.complete { background: var(--gold-tint); color: var(--gold-deep); }
+:root[data-theme="dark"] .hg-status.complete { color: var(--gold); }
+.hg-status.withdrawn { background: var(--surface-2); color: var(--ink-faint); }
+.hg-status.rejected { background: rgba(196,82,58,0.12); color: var(--danger); }
+.hg-status.open { background: var(--bounty-tint); color: var(--bounty); }
+.hist-game .hg-title { flex: 1; }
+.hist-game .hg-reward { font-family: var(--font-display); font-weight: 700; color: var(--cash); }
+
+/* ─── MODAL ──────────────────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 12, 4, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 20px;
+  overflow-y: auto;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-lift);
+  transform: scale(0.94);
+  transition: transform 0.3s cubic-bezier(0.5, 1.4, 0.5, 1);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  margin: auto;
+}
+.modal.wide { max-width: 560px; }
+.modal-backdrop.open .modal { transform: scale(1); }
+.modal h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.015em;
+  margin-bottom: 4px;
+}
+.modal .sub { color: var(--ink-soft); font-size: 14px; margin-bottom: 18px; }
+.modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+}
+.modal-row:first-of-type { border-top: none; }
+.modal-row .label-text { display: flex; flex-direction: column; gap: 2px; }
+.modal-row .label-main { font-weight: 700; font-size: 14px; }
+.modal-row .label-sub { font-size: 12px; color: var(--ink-faint); }
+
+.toggle-pill {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+  padding: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.toggle-pill button { padding: 5px 10px; border-radius: 100px; color: var(--ink-faint); font-weight: 700; transition: all 0.2s ease; }
+.toggle-pill button.active { background: var(--bounty); color: #fff; }
+
+/* Forms */
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.field label .req { color: var(--danger); }
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color 0.2s ease;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--bounty); }
+.field textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+.field .hint { font-size: 11px; color: var(--ink-faint); margin-top: 4px; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+.autofill-box {
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.autofill-row { display: flex; gap: 8px; }
+.autofill-row input { flex: 1; }
+.autofill-results { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+.af-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.af-result:hover { border-color: var(--bounty); }
+.af-result .af-name { font-weight: 700; }
+.af-result .af-meta { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); }
+.af-status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); margin-top: 8px; }
+.af-status.err { color: var(--danger); }
+
+.btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:hover { border-color: var(--bounty); color: var(--bounty); }
+.btn.small { padding: 7px 12px; font-size: 12px; }
+.btn-danger { color: var(--danger); }
+.btn-danger:hover { background: rgba(196, 82, 58, 0.1); border-color: var(--danger); color: var(--danger); }
+.btn.armed { background: var(--danger); color: #fff !important; border-color: var(--danger); animation: armPulse 1s ease-in-out infinite; }
+.btn.armed:hover { background: #a83e2a; border-color: #a83e2a; color: #fff !important; }
+@keyframes armPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 82, 58, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(196, 82, 58, 0); }
+}
+.btn-primary { background: var(--bounty); color: #fff; border-color: var(--bounty); }
+.btn-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+.modal-actions .left { margin-right: auto; }
+
+/* PIN */
+.pin-input {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  letter-spacing: 0.5em;
+  text-align: center;
+  padding: 12px !important;
+}
+.pin-shake { animation: cardShake 0.4s both; }
+
+/* ─── CONFETTI / WOMP ────────────────────────────────────────────────────── */
+.confetti {
+  position: fixed;
+  pointer-events: none;
+  z-index: 200;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  opacity: 1;
+  will-change: transform, opacity;
+}
+.womp-label {
+  position: fixed;
+  z-index: 201;
+  pointer-events: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--danger);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  will-change: transform, opacity;
+}
+
+/* ─── FOOTER ─────────────────────────────────────────────────────────────── */
+.foot-mark {
+  text-align: center;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.15em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.foot-mark .heart { color: var(--rose); display: inline-block; animation: heartbeat 2s ease-in-out infinite; }
+.foot-ver { display: block; margin-top: 8px; opacity: 0.7; letter-spacing: 0.1em; text-transform: none; }
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  20% { transform: scale(1.2); }
+  40% { transform: scale(1); }
+}
+
+/* ─── ANIMATIONS ─────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .wrap { padding: 20px 14px 0; }
+  .dashboard { padding: 20px 18px; }
+  .card { padding: 16px; grid-template-columns: 56px 1fr; }
+  .cover { width: 56px; height: 74px; font-size: 22px; }
+  .dash-stats { gap: 10px; }
+  .stat-num { font-size: 26px; }
+  .modal { padding: 22px; }
+  .field-grid, .field-grid-3 { grid-template-columns: 1fr; }
+  .card.is-complete::after, .card.is-rejected::after { font-size: 10px; padding: 4px 30px; right: -20px; top: 42px; }
+}
+@media (max-width: 380px) {
+  .card-meta { gap: 4px; }
+  .bounty-pill { font-size: 14px; padding: 3px 8px; }
+  .meta-pill { font-size: 11px; padding: 3px 8px; }
+  .sa { font-size: 12px; min-width: 80px; }
+}
+@media (min-width: 760px) {
+  .cards:not(.compact) { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .cards:not(.compact) .card { animation-delay: calc(var(--idx, 0) * 40ms + 0.3s); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<main>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand-mark"><span class="dot"></span><span class="mode-badge" id="modeBadge">User</span></div>
+    <div class="topbar-actions">
+      <div class="nav-tabs" role="group" aria-label="View">
+        <button id="navBoard" class="active">Board</button>
+        <button id="navHistory">History</button>
+      </div>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIcon">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+      </button>
+      <button class="icon-btn manage-only" id="settingsBtn" aria-label="Manage settings" title="Manage settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="lockBtn" aria-label="Manage mode" title="Manage mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="lockIcon">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-eyebrow" id="heroEyebrow">Wanted &middot; Annual Edition</div>
+    <h1 id="heroTitle">Bounty Hunt</h1>
+    <div class="hero-year" id="heroYear"></div>
+    <p class="hero-tag" id="heroTag"></p>
+    <button class="icon-btn manage-only hero-edit" id="editHeaderBtn" aria-label="Edit details" title="Edit details">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+    </button>
+  </header>
+
+  <section class="dashboard" id="dashboard" aria-label="Progress dashboard">
+    <div class="dash-stats">
+      <div class="stat">
+        <div class="stat-num"><span id="statCompleted">0</span><span class="total" id="statTotal">/0</span></div>
+        <div class="stat-label">Captured</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num cash">$<span id="statEarned">0</span></div>
+        <div class="stat-label">Earned</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num gold">$<span id="statRemaining">0</span></div>
+        <div class="stat-label">Still on the Board</div>
+      </div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+    <div class="progress-row">
+      <span>Progress</span>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-pct" id="progressPct">0%</span>
+    </div>
+  </section>
+
+  <div class="controls" id="controls" role="group" aria-label="Board controls">
+    <span class="controls-label">Sort</span>
+    <select class="sort-select" id="sortSelect" aria-label="Sort field">
+      <option value="manual">Custom order</option>
+      <option value="title">Title</option>
+      <option value="year">Year</option>
+      <option value="system">Console</option>
+      <option value="reward">Reward</option>
+      <option value="status">Status</option>
+      <option value="rating">Rating</option>
+    </select>
+    <button class="dir-btn" id="dirBtn" aria-label="Toggle sort direction">
+      <span class="arrow" id="dirArrow">↑</span>
+      <span id="dirLabel">A→Z</span>
+    </button>
+    <div class="seg" role="group" aria-label="Layout">
+      <button id="layoutCard" class="active" aria-label="Card layout" title="Card layout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <button id="layoutCompact" aria-label="Compact layout" title="Compact layout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="spacer"></div>
+    <button class="tb-btn primary manage-only" id="addGameBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add game</button>
+    <button class="tb-btn manage-only" id="dataBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Import / Export</button>
+    <button class="tb-btn danger manage-only" id="closeSeasonBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Close out season</button>
+  </div>
+
+  <div class="cards" id="board" aria-live="polite"></div>
+  <div class="history-wrap" id="history" style="display:none"></div>
+
+  <div class="foot-mark" id="footMark">
+    Made with <span class="heart">♥</span>
+    <span class="foot-ver" id="footVer"></span>
+  </div>
+</div>
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
+  <div class="modal" id="modalPanel"></div>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONSTANTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+const APP_VERSION = '2.0.0';
+const STORAGE_KEY = 'dadBountyHunt.v2';
+const LEGACY_KEY = 'bountyHunt2026';
+const APP_ID = 'dad-bounty-hunt';
+const GAME_CAP = 99;
+
+const STATUS_LABELS = { open: 'On the Board', complete: 'Complete', withdrawn: 'Withdrawn', rejected: 'Rejected' };
+
+const GRADIENTS = [
+  'linear-gradient(135deg, #4a90e2, #b993ff)',
+  'linear-gradient(135deg, #ff5a36, #ffb84d)',
+  'linear-gradient(135deg, #b4663a, #8a3a1f)',
+  'linear-gradient(135deg, #2d8659, #5dc991)',
+  'linear-gradient(135deg, #c4523a, #f59c4f)',
+  'linear-gradient(135deg, #2c4a8a, #8aa6d4)',
+  'linear-gradient(135deg, #5dc991, #f3c44a)',
+  'linear-gradient(135deg, #1f5fc4, #4a90e2)',
+  'linear-gradient(135deg, #e63946, #ffb84d)',
+  'linear-gradient(135deg, #ff7a1a, #4a90e2)',
+  'linear-gradient(135deg, #7b5cff, #4a90e2)',
+  'linear-gradient(135deg, #d97720, #e0a82e)',
+];
+
+/* Seed catalog — the original 10 games, now editable. */
+const DEFAULT_GAMES = [
+  { title: 'Ori and the Blind Forest', reward: 30, system: 'Xbox Series X', players: 1, objectives: ['Defeat Kuro and save the forest of Nibel'], year: 2015, developer: 'Moon Studios', rating: 9, cover: { glyph: 'OR', gradient: GRADIENTS[0] }, description: 'A breathtaking hand-painted Metroidvania where you guide Ori, a small forest spirit, through a dying world. Stunning visuals, an emotional story about love and sacrifice, and platforming that asks for precision but rewards patience.', guide: 'https://strategywiki.org/wiki/Ori_and_the_Blind_Forest/Walkthrough' },
+  { title: 'Pokémon: Fire Red', reward: 30, system: 'Nintendo Switch (NSO GBA)', players: 1, objectives: ['Defeat the Elite Four and become the Pokémon Champion', 'Defeat or capture Mewtwo'], year: 2004, developer: 'Game Freak', rating: 8, cover: { glyph: 'FR', gradient: GRADIENTS[1] }, description: 'The remake of the original Pokémon Red — Kanto, all 151 originals, and the gym-leader-to-Elite-Four arc that defined the series. Mewtwo waits in Cerulean Cave once you have earned the title.', guide: 'https://gamefaqs.gamespot.com/gba/562124-pokemon-firered-version/faqs/30445' },
+  { title: 'Donkey Kong Country', reward: 30, system: 'Nintendo Switch Online (SNES)', players: 2, playersNote: 'tag-team', objectives: ['Defeat King K. Rool and recover the stolen banana hoard'], year: 1994, developer: 'Rare', rating: 9, cover: { glyph: 'DK', gradient: GRADIENTS[2] }, description: 'Rare’s pre-rendered platformer was a graphical bombshell in 1994 and the soundtrack still slaps. Tight controls, mine-cart chaos, and a co-op-friendly partner system.', guide: 'https://gamefaqs.gamespot.com/snes/588282-donkey-kong-country/faqs/81279' },
+  { title: 'The Legend of Zelda: A Link to the Past', reward: 40, system: 'Nintendo Switch Online (SNES)', players: 1, objectives: ['Save Princess Zelda, defeat Ganon, and restore peace to Hyrule'], year: 1991, developer: 'Nintendo EAD', rating: 10, cover: { glyph: 'LP', gradient: GRADIENTS[3] }, description: 'The blueprint. Every top-down Zelda since owes its existence to this game — the Light World/Dark World split, the dungeon-item-puzzle loop, the Master Sword, the Hookshot.', guide: 'https://www.zeldadungeon.net/a-link-to-the-past-walkthrough/' },
+  { title: 'Super Metroid', reward: 40, system: 'Nintendo Switch Online (SNES)', players: 1, objectives: ['Defeat Mother Brain and escape the planet Zebes'], year: 1994, developer: 'Nintendo R&D1', rating: 10, cover: { glyph: 'SM', gradient: GRADIENTS[4] }, description: 'Atmospheric, lonely, and still basically perfect 30+ years later. Samus Aran on Zebes — minimal hand-holding, environmental storytelling, and a final escape sequence that never stops being thrilling.', guide: 'https://gamefaqs.gamespot.com/snes/588741-super-metroid/faqs/70645' },
+  { title: 'Final Fantasy IV', reward: 50, system: 'Xbox Series X (Pixel Remaster)', players: 1, objectives: ['Defeat Zeromus and save the world from destruction'], year: 1991, developer: 'Square', rating: 9, cover: { glyph: 'IV', gradient: GRADIENTS[5] }, description: 'The JRPG that taught the genre how to tell a real story. Cecil starts as a Dark Knight troubled by his orders, and the game follows his transformation across an unforgettable arc.', guide: 'https://gamefaqs.gamespot.com/pc/323467-final-fantasy-iv-pixel-remaster/faqs/79579/about' },
+  { title: 'Animal Crossing: New Horizons', reward: 40, system: 'Nintendo Switch', players: 1, objectives: ['Get a 3-Star Island Rating'], year: 2020, developer: 'Nintendo EPD', rating: 9, cover: { glyph: 'AC', gradient: GRADIENTS[6] }, description: 'A peaceful, open-ended island life sim — fish, dig fossils, decorate, befriend villagers. The 3-star island rating is the unofficial "you finished the main loop" milestone.', guide: 'https://animalcrossing.fandom.com/wiki/Island_evaluation' },
+  { title: 'Sonic the Hedgehog 3 + Knuckles', reward: 40, system: 'Xbox Series X (Sonic Origins)', players: 2, playersNote: 'co-op w/ Tails', objectives: ['Get Super Sonic', 'Defeat Dr. Eggman in the Doomsday Zone'], year: 1994, developer: 'Sonic Team', rating: 9, cover: { glyph: 'S3', gradient: GRADIENTS[7] }, description: 'Sonic 3 and Sonic & Knuckles were originally released as two halves of a single game. The combined adventure is the most ambitious 2D Sonic ever — multiple paths, save files, and Knuckles.', guide: 'https://gamefaqs.gamespot.com/pc/620568-sonic-3-and-knuckles/faqs/32166' },
+  { title: 'Super Mario RPG (Remake)', reward: 30, system: 'Nintendo Switch', players: 1, objectives: ['Defeat Smithy and save the Mushroom Kingdom'], year: 2023, developer: 'ArtePiazza / Nintendo', rating: 8, cover: { glyph: 'MR', gradient: GRADIENTS[8] }, description: 'A faithful, gorgeous remake of the 1996 SNES original — Mario’s first RPG. Timed action commands make turn-based combat feel alive, and any difficulty means breezy mode is perfectly fair.', guide: 'https://www.nintendolife.com/guides/super-mario-rpg-walkthrough-tips-all-secrets-minigames-and-bosses' },
+  { title: 'Portal 2', reward: 50, system: 'Xbox Series X', players: 1, objectives: ['Complete the story and escape Aperture Science'], year: 2011, developer: 'Valve', rating: 10, cover: { glyph: 'P2', gradient: GRADIENTS[9] }, description: 'One of the funniest, smartest games ever made. You are a test subject in the ruins of Aperture Science, armed with a portal gun and an increasingly unhinged AI named Wheatley.', guide: 'https://www.thonky.com/portal-2-walkthrough/' },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STORE (persisted)
+   ═══════════════════════════════════════════════════════════════════════════ */
+let store = null;
+
+/* Runtime-only state */
+const APP = { mode: 'user', view: 'board', afResults: [] };
+
+function uid(prefix) { return prefix + Math.random().toString(36).slice(2, 9); }
+function nowISO() { return new Date().toISOString(); }
+
+function newGame(overrides) {
+  return Object.assign({
+    id: uid('g-'), title: '', reward: null, system: '', players: 1, playersNote: '',
+    objectives: [], year: null, developer: '', rating: null,
+    cover: { glyph: '', gradient: '' }, coverArt: '', description: '', guide: '',
+    rawgId: null, status: 'open', statusAt: null, hinted: false,
+  }, overrides || {});
+}
+
+function makeSeason(overrides) {
+  return Object.assign({
+    id: uid('season-'),
+    title: "Dad's Annual Game Bounty Hunt",
+    eyebrow: 'Wanted · Annual Edition',
+    season: 'Summer',
+    year: new Date().getFullYear(),
+    kidName: '',
+    byline: '',
+    defaultBounty: 25,
+    createdAt: nowISO(),
+    closedAt: null,
+    games: [],
+  }, overrides || {});
+}
+
+function defaultStore() {
+  const season = makeSeason({ id: 'season-1', season: 'Summer', year: 2026 });
+  season.games = DEFAULT_GAMES.map((g, i) => newGame(Object.assign({}, g, {
+    id: uid('g-'),
+    cover: { glyph: g.cover.glyph, gradient: g.cover.gradient || GRADIENTS[i % GRADIENTS.length] },
+  })));
+  return {
+    schemaVersion: 2,
+    app: APP_ID,
+    device: { themeMode: 'auto', layout: 'card', sort: { field: 'manual', dir: 'asc' }, rawgKey: '', managePin: '' },
+    activeSeasonId: season.id,
+    seasons: { [season.id]: season },
+  };
+}
+
+/* Migrate legacy v1 completion/hint state onto the seeded default games. */
+// Legacy v1 used stable string ids keyed to these titles. The new seed
+// regenerates ids, so we bridge the old id-keyed completed/hinted maps onto the
+// freshly-seeded games by title.
+const LEGACY_TITLES = {
+  'ori': 'Ori and the Blind Forest',
+  'pkmn-fr': 'Pokémon: Fire Red',
+  'dkc': 'Donkey Kong Country',
+  'zelda-alttp': 'The Legend of Zelda: A Link to the Past',
+  'super-metroid': 'Super Metroid',
+  'ff4': 'Final Fantasy IV',
+  'acnh': 'Animal Crossing: New Horizons',
+  'sonic3k': 'Sonic the Hedgehog 3 + Knuckles',
+  'smrpg': 'Super Mario RPG (Remake)',
+  'portal2': 'Portal 2',
+};
+function applyLegacyState(st) {
+  try {
+    const raw = localStorage.getItem(LEGACY_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    const season = st.seasons[st.activeSeasonId];
+    const byTitle = {};
+    season.games.forEach(g => { byTitle[g.title] = g; });
+    Object.keys(data.completed || {}).forEach(id => {
+      const g = byTitle[LEGACY_TITLES[id]];
+      if (g && data.completed[id]) { g.status = 'complete'; g.statusAt = nowISO(); }
+    });
+    Object.keys(data.hinted || {}).forEach(id => {
+      const g = byTitle[LEGACY_TITLES[id]];
+      if (g && data.hinted[id]) g.hinted = true;
+    });
+  } catch (e) { /* ignore — start fresh */ }
+}
+
+function loadStore() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.seasons && parsed.activeSeasonId) {
+        store = parsed;
+        // Backfill any missing device fields
+        store.device = Object.assign({ themeMode: 'auto', layout: 'card', sort: { field: 'manual', dir: 'asc' }, rawgKey: '', managePin: '' }, store.device || {});
+        return;
+      }
+    }
+  } catch (e) { console.warn('Failed to load store:', e); }
+  store = defaultStore();
+  applyLegacyState(store);
+  saveStore();
+}
+
+function saveStore() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }
+  catch (e) { console.warn('Failed to save store:', e); }
+}
+
+function activeSeason() { return store.seasons[store.activeSeasonId]; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function $(id) { return document.getElementById(id); }
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function attrSafe(s) { return escapeHtml(s); }
+
+function autoGlyph(title) {
+  const words = String(title || '').replace(/[^a-z0-9 ]/gi, ' ').split(/\s+/).filter(Boolean);
+  if (!words.length) return '?';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; } return h; }
+function gradientFor(g) { return g.cover.gradient || GRADIENTS[hashStr(g.id) % GRADIENTS.length]; }
+function glyphFor(g) { return g.cover.glyph || autoGlyph(g.title); }
+function bountyOf(g) { const s = activeSeason(); return (g.reward == null || g.reward === '') ? (s.defaultBounty || 25) : Number(g.reward); }
+
+function seasonLabel(s) { return [s.season, s.year].filter(v => v !== '' && v != null).join(' ').trim(); }
+function generatedByline(s) {
+  const n = s.games.length;
+  return n + ' classic game' + (n === 1 ? '' : 's') + '. Real cash rewards. Beat them, get paid. Go.';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEME
+   ═══════════════════════════════════════════════════════════════════════════ */
+function applyTheme() {
+  const mode = store.device.themeMode;
+  const mql = window.matchMedia('(prefers-color-scheme: dark)');
+  const resolved = mode === 'auto' ? (mql.matches ? 'dark' : 'light') : mode;
+  document.documentElement.setAttribute('data-theme', resolved);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', resolved === 'dark' ? '#161220' : '#fef5e0');
+  const icon = $('themeIcon');
+  if (icon) {
+    icon.innerHTML = resolved === 'dark'
+      ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+      : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+  }
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (store.device.themeMode === 'auto') applyTheme();
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODE (User / Manage)
+   ═══════════════════════════════════════════════════════════════════════════ */
+function setMode(mode) {
+  APP.mode = mode;
+  document.body.classList.toggle('mode-manage', mode === 'manage');
+  document.body.classList.toggle('mode-user', mode === 'user');
+  if (mode === 'manage') sessionStorage.setItem('bh_manage', '1');
+  else sessionStorage.removeItem('bh_manage');
+  $('modeBadge').textContent = mode === 'manage' ? 'Manage' : 'User';
+  const li = $('lockIcon');
+  if (li) li.innerHTML = mode === 'manage'
+    ? '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>'
+    : '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
+  render();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RENDER — hero + dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderHero() {
+  const s = activeSeason();
+  $('heroEyebrow').textContent = s.eyebrow || '';
+  const title = s.title || 'Game Bounty Hunt';
+  // Keep the signature accent on the word "Bounty" when present.
+  if (/bounty/i.test(title)) {
+    $('heroTitle').innerHTML = escapeHtml(title).replace(/(Bounty)/i, '<span class="accent">$1</span>');
+  } else {
+    $('heroTitle').textContent = title;
+  }
+  $('heroYear').textContent = seasonLabel(s);
+  $('heroTag').textContent = s.byline && s.byline.trim() ? s.byline : generatedByline(s);
+  // Footer
+  const kid = s.kidName && s.kidName.trim();
+  $('footMark').firstChild.textContent = kid ? 'Made with ' : 'Made with ';
+  const heart = '<span class="heart">♥</span>';
+  $('footMark').innerHTML = 'Made with ' + heart + (kid ? ' for ' + escapeHtml(kid) + ' · Hunt on, kiddo' : ' · Hunt on') +
+    '<span class="foot-ver" id="footVer">v' + APP_VERSION + '</span>';
+}
+
+function renderDashboard() {
+  const s = activeSeason();
+  const games = s.games;
+  const total = games.length;
+  const counts = { open: 0, complete: 0, withdrawn: 0, rejected: 0 };
+  let earned = 0, onBoard = 0;
+  games.forEach(g => {
+    counts[g.status] = (counts[g.status] || 0) + 1;
+    if (g.status === 'complete') earned += bountyOf(g);
+    if (g.status === 'open') onBoard += bountyOf(g);
+  });
+  const pct = total ? Math.round((counts.complete / total) * 100) : 0;
+  $('statCompleted').textContent = counts.complete;
+  $('statTotal').textContent = '/' + total;
+  $('statEarned').textContent = earned;
+  $('statRemaining').textContent = onBoard;
+  $('progressFill').style.width = pct + '%';
+  $('progressPct').textContent = pct + '%';
+
+  const pills = [
+    { k: 'open', label: 'On the board', n: counts.open },
+    { k: 'complete', label: 'Captured', n: counts.complete },
+    { k: 'withdrawn', label: 'Withdrawn', n: counts.withdrawn },
+    { k: 'rejected', label: 'Given up', n: counts.rejected },
+  ];
+  $('breakdown').innerHTML = pills.map(p =>
+    `<span class="bd-pill ${p.k}"><span class="dotc"></span><b>${p.n}</b> ${p.label}</span>`
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RENDER — board
+   ═══════════════════════════════════════════════════════════════════════════ */
+const DIR_LABELS = {
+  manual: { asc: '1→N', desc: 'N→1' },
+  title: { asc: 'A→Z', desc: 'Z→A' },
+  year: { asc: 'Old→New', desc: 'New→Old' },
+  system: { asc: 'A→Z', desc: 'Z→A' },
+  reward: { asc: 'Low→High', desc: 'High→Low' },
+  status: { asc: 'Open first', desc: 'Done first' },
+  rating: { asc: 'Low→High', desc: 'High→Low' },
+};
+const STATUS_ORDER = { open: 0, withdrawn: 1, rejected: 2, complete: 3 };
+
+function orderedGames() {
+  const s = activeSeason();
+  const games = s.games.map((g, i) => ({ g, i }));
+  const { field, dir } = store.device.sort;
+  if (field === 'manual') {
+    const out = games.map(x => x.g);
+    return dir === 'desc' ? out.reverse() : out;
+  }
+  const mod = dir === 'asc' ? 1 : -1;
+  games.sort((A, B) => {
+    const a = A.g, b = B.g; let av, bv;
+    switch (field) {
+      case 'title': av = a.title.toLowerCase(); bv = b.title.toLowerCase(); break;
+      case 'year': av = a.year || 0; bv = b.year || 0; break;
+      case 'system': av = (a.system || '').toLowerCase(); bv = (b.system || '').toLowerCase(); break;
+      case 'reward': av = bountyOf(a); bv = bountyOf(b); break;
+      case 'rating': av = a.rating || 0; bv = b.rating || 0; break;
+      case 'status': av = STATUS_ORDER[a.status]; bv = STATUS_ORDER[b.status]; break;
+      default: av = a.title; bv = b.title;
+    }
+    if (av < bv) return -1 * mod;
+    if (av > bv) return 1 * mod;
+    return A.i - B.i;
+  });
+  return games.map(x => x.g);
+}
+
+function statusBtns(g) {
+  const mk = (st, cls, label, svg) =>
+    `<button class="sa ${cls} ${g.status === st ? 'active' : ''}" data-action="status" data-status="${st}" aria-pressed="${g.status === st}" title="${label}">${svg}<span>${label}</span></button>`;
+  const check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12 10 17 19 7"/></svg>';
+  const undo = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>';
+  const x = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  return `<div class="status-row" role="group" aria-label="Set outcome">
+    ${mk('complete', 'sa-complete', 'Complete', check)}
+    ${mk('withdrawn', 'sa-withdraw', 'Withdraw', undo)}
+    ${mk('rejected', 'sa-reject', 'Reject', x)}
+  </div>`;
+}
+
+function manageCardTools() {
+  return `<div class="card-manage manage-only block">
+    <button class="mini" data-action="edit" title="Edit" aria-label="Edit game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+    <button class="mini" data-action="up" title="Move up" aria-label="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+    <button class="mini" data-action="down" title="Move down" aria-label="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <button class="mini del" data-action="delete" title="Delete" aria-label="Delete game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+  </div>`;
+}
+
+function coverHtml(g) {
+  if (g.coverArt) {
+    return `<div class="cover has-art" style="background:${gradientFor(g)}" aria-hidden="true"><img src="${attrSafe(g.coverArt)}" alt="" onerror="this.remove();this.parentNode.classList.remove('has-art')"><span class="cover-glyph" style="position:absolute;opacity:0;">${escapeHtml(glyphFor(g))}</span></div>`;
+  }
+  return `<div class="cover" style="background:${gradientFor(g)}" aria-hidden="true"><span class="cover-glyph">${escapeHtml(glyphFor(g))}</span></div>`;
+}
+
+function renderCardFull(g, ordinal) {
+  const stars = g.rating ? `<span class="meta-rating" title="Rating ${g.rating}/10"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"/></svg>${g.rating}/10</span>` : '';
+  const objectivesHtml = (g.objectives || []).filter(Boolean).map(o => `<li>${escapeHtml(o)}</li>`).join('');
+  const tags = objectivesHtml ? `<div class="card-tags"><div class="tags-label">Capture Criteria</div><ul class="objective-list">${objectivesHtml}</ul></div>` : '<div class="card-tags"></div>';
+  const descMeta = (g.year || g.developer) ? `<div class="card-desc-meta"><strong>${g.year || ''}</strong>${g.year && g.developer ? ' · ' : ''}${escapeHtml(g.developer || '')}</div>` : '';
+  const desc = g.description ? `<span class="card-desc-text" data-desc>${escapeHtml(g.description)}</span><button class="card-desc-toggle" data-action="expand-desc" aria-expanded="false"><span data-toggle-text>Read more</span><span aria-hidden="true">→</span></button>${descMeta}` : descMeta;
+  const playersTitle = g.playersNote ? `${g.players} players — ${escapeHtml(g.playersNote)}` : `${g.players} player${g.players > 1 ? 's' : ''}`;
+  const guide = g.guide ? `<a class="guide-link" href="${attrSafe(g.guide)}" target="_blank" rel="noopener noreferrer" data-action="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Need a hint?</a>` : '<span></span>';
+  const hint = g.hinted ? `<span class="hint-pin" title="Got help on this one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s-8-4.5-8-11.8A5.4 5.4 0 0 1 12 4a5.4 5.4 0 0 1 8 6.2C20 17.5 12 22 12 22z"/></svg>Got a hint</span>` : '';
+
+  return `<article class="card is-${g.status}" data-game-id="${g.id}" style="--idx:${ordinal - 1}">
+    ${coverHtml(g)}
+    <div class="card-head">
+      <div class="card-ordinal">№ ${String(ordinal).padStart(2, '0')}</div>
+      <h2 class="card-title">${escapeHtml(g.title)}</h2>
+    </div>
+    ${manageCardTools()}
+    <div class="card-meta">
+      <span class="bounty-pill"><span class="dollar">$</span>${bountyOf(g)}</span>
+      ${g.system ? `<span class="meta-pill" title="${attrSafe(g.system)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M8 12h2M14 12h2"/></svg>${escapeHtml(g.system)}</span>` : ''}
+      <span class="meta-pill" title="${playersTitle}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>${g.players}P${g.playersNote ? `<span class="players-note">${escapeHtml(g.playersNote)}</span>` : ''}</span>
+      ${stars}
+    </div>
+    <div class="card-desc">${desc}</div>
+    ${tags}
+    ${statusBtns(g)}
+    <div class="card-foot">${guide}${hint}</div>
+  </article>`;
+}
+
+function renderCardCompact(g, ordinal) {
+  return `<article class="card is-${g.status}" data-game-id="${g.id}">
+    ${coverHtml(g)}
+    <div class="card-head">
+      <h2 class="card-title">${escapeHtml(g.title)}</h2>
+      <div class="compact-sys">${escapeHtml(g.system || '')}</div>
+    </div>
+    <span class="bounty-pill"><span class="dollar">$</span>${bountyOf(g)}</span>
+    ${statusBtns(g)}
+    ${manageCardTools()}
+  </article>`;
+}
+
+function renderBoard() {
+  const compact = store.device.layout === 'compact';
+  const board = $('board');
+  board.classList.toggle('compact', compact);
+  const games = orderedGames();
+  if (!games.length) {
+    board.innerHTML = `<div class="hist-empty">No games on the board yet.${APP.mode === 'manage' ? ' Use “Add game” to start the hunt.' : ''}</div>`;
+    return;
+  }
+  const fn = compact ? renderCardCompact : renderCardFull;
+  board.innerHTML = games.map((g, i) => fn(g, i + 1)).join('');
+  attachCardListeners();
+}
+
+function attachCardListeners() {
+  document.querySelectorAll('.card').forEach(card => {
+    const id = card.dataset.gameId;
+    card.querySelectorAll('[data-action="status"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rect = btn.getBoundingClientRect();
+        setStatus(id, btn.dataset.status, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      });
+    });
+    const descToggle = card.querySelector('[data-action="expand-desc"]');
+    if (descToggle) descToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const desc = card.querySelector('[data-desc]');
+      const t = descToggle.querySelector('[data-toggle-text]');
+      const expanded = desc.classList.toggle('expanded');
+      t.textContent = expanded ? 'Read less' : 'Read more';
+      descToggle.setAttribute('aria-expanded', String(expanded));
+    });
+    const guide = card.querySelector('[data-action="hint"]');
+    if (guide) guide.addEventListener('click', () => {
+      const g = findGame(id);
+      if (g && !g.hinted) { g.hinted = true; saveStore(); const foot = card.querySelector('.card-foot');
+        if (foot && !foot.querySelector('.hint-pin')) {
+          const pin = document.createElement('span'); pin.className = 'hint-pin'; pin.title = 'Got help on this one';
+          pin.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s-8-4.5-8-11.8A5.4 5.4 0 0 1 12 4a5.4 5.4 0 0 1 8 6.2C20 17.5 12 22 12 22z"/></svg>Got a hint';
+          foot.appendChild(pin);
+        }
+      }
+    });
+    // Manage tools
+    const edit = card.querySelector('[data-action="edit"]');
+    if (edit) edit.addEventListener('click', (e) => { e.stopPropagation(); openGameModal(id); });
+    const del = card.querySelector('[data-action="delete"]');
+    if (del) setupConfirmButton(del, () => deleteGame(id), { icon: true });
+    const up = card.querySelector('[data-action="up"]');
+    if (up) up.addEventListener('click', (e) => { e.stopPropagation(); moveGame(id, -1); });
+    const down = card.querySelector('[data-action="down"]');
+    if (down) down.addEventListener('click', (e) => { e.stopPropagation(); moveGame(id, 1); });
+  });
+}
+
+function findGame(id) { return activeSeason().games.find(g => g.id === id); }
+
+function setStatus(id, status, origin) {
+  const g = findGame(id);
+  if (!g) return;
+  const next = g.status === status ? 'open' : status;
+  g.status = next;
+  g.statusAt = nowISO();
+  saveStore();
+  renderDashboard();
+  renderBoard();
+  if (next === 'complete' && origin) fireConfetti(origin.x, origin.y);
+  if (next === 'rejected' && origin) { fireWompWomp(origin.x, origin.y); shakeCard(id); }
+}
+
+function shakeCard(id) {
+  const card = document.querySelector(`.card[data-game-id="${id}"]`);
+  if (!card) return;
+  card.classList.remove('womp'); void card.offsetWidth; card.classList.add('womp');
+}
+
+function moveGame(id, delta) {
+  // Reorder always operates on the underlying array; switch to manual order so it shows.
+  if (store.device.sort.field !== 'manual') { store.device.sort.field = 'manual'; store.device.sort.dir = 'asc'; updateControls(); }
+  const arr = activeSeason().games;
+  const idx = arr.findIndex(g => g.id === id);
+  const j = idx + delta;
+  if (idx < 0 || j < 0 || j >= arr.length) return;
+  const [item] = arr.splice(idx, 1);
+  arr.splice(j, 0, item);
+  saveStore();
+  renderBoard();
+}
+
+function deleteGame(id) {
+  const arr = activeSeason().games;
+  const idx = arr.findIndex(g => g.id === id);
+  if (idx >= 0) { arr.splice(idx, 1); saveStore(); renderDashboard(); renderBoard(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RENDER — history
+   ═══════════════════════════════════════════════════════════════════════════ */
+function archivedSeasons() {
+  return Object.values(store.seasons).filter(s => s.closedAt).sort((a, b) => (b.closedAt || '').localeCompare(a.closedAt || ''));
+}
+
+function renderHistory() {
+  const wrap = $('history');
+  const seasons = archivedSeasons();
+  if (!seasons.length) {
+    wrap.innerHTML = `<div class="hist-empty">No closed-out hunts yet.<br>When you “Close out season” in Manage mode, past hunts land here.</div>`;
+    return;
+  }
+  wrap.innerHTML = seasons.map(s => {
+    const counts = { open: 0, complete: 0, withdrawn: 0, rejected: 0 };
+    let earned = 0;
+    s.games.forEach(g => { counts[g.status] = (counts[g.status] || 0) + 1; if (g.status === 'complete') earned += bountyOf(g); });
+    const gamesHtml = s.games.map(g => `<div class="hist-game"><span class="hg-status ${g.status}">${STATUS_LABELS[g.status]}</span><span class="hg-title">${escapeHtml(g.title)}</span><span class="hg-reward">$${bountyOf(g)}</span></div>`).join('');
+    const del = APP.mode === 'manage' ? `<button class="btn btn-danger small manage-only" data-action="del-season" data-id="${s.id}" style="display:inline-flex">Delete</button>` : '';
+    return `<div class="hist-card" data-season-id="${s.id}">
+      <div class="hist-head">
+        <div>
+          <div class="hist-title">${escapeHtml(s.title)}</div>
+          <div class="hist-sub">${escapeHtml(seasonLabel(s))} · ${s.games.length} games · closed ${new Date(s.closedAt).toLocaleDateString()}</div>
+        </div>
+        ${del}
+      </div>
+      <div class="hist-stats">
+        <span class="bd-pill complete"><span class="dotc"></span><b>${counts.complete}</b> captured</span>
+        <span class="bd-pill" style="border-color:var(--cash);color:var(--cash)"><b>$${earned}</b> earned</span>
+        <span class="bd-pill withdrawn"><span class="dotc"></span><b>${counts.withdrawn}</b> withdrawn</span>
+        <span class="bd-pill rejected"><span class="dotc"></span><b>${counts.rejected}</b> given up</span>
+      </div>
+      <button class="hist-toggle" data-action="hist-toggle">Show games ▾</button>
+      <div class="hist-games">${gamesHtml}</div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('[data-action="hist-toggle"]').forEach(btn => btn.addEventListener('click', () => {
+    const g = btn.parentElement.querySelector('.hist-games');
+    const open = g.classList.toggle('open');
+    btn.textContent = open ? 'Hide games ▴' : 'Show games ▾';
+  }));
+  wrap.querySelectorAll('[data-action="del-season"]').forEach(btn => setupConfirmButton(btn, () => {
+    delete store.seasons[btn.dataset.id]; saveStore(); renderHistory();
+  }));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIEW / CONTROLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function setView(view) {
+  APP.view = view;
+  $('navBoard').classList.toggle('active', view === 'board');
+  $('navHistory').classList.toggle('active', view === 'history');
+  $('dashboard').style.display = view === 'board' ? '' : 'none';
+  $('controls').style.display = view === 'board' ? '' : 'none';
+  $('board').style.display = view === 'board' ? '' : 'none';
+  $('history').style.display = view === 'history' ? '' : 'none';
+  render();
+}
+
+function updateControls() {
+  $('sortSelect').value = store.device.sort.field;
+  const labels = DIR_LABELS[store.device.sort.field] || DIR_LABELS.title;
+  $('dirLabel').textContent = labels[store.device.sort.dir];
+  $('dirArrow').textContent = store.device.sort.dir === 'asc' ? '↑' : '↓';
+  $('layoutCard').classList.toggle('active', store.device.layout !== 'compact');
+  $('layoutCompact').classList.toggle('active', store.device.layout === 'compact');
+}
+
+function render() {
+  renderHero();
+  if (APP.view === 'board') {
+    renderDashboard();
+    updateControls();
+    renderBoard();
+  } else {
+    renderHistory();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function reducedMotion() { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+function fireConfetti(originX, originY) {
+  if (reducedMotion()) return;
+  const colors = ['#d97720', '#e0a82e', '#2d8659', '#4a8db5', '#c4527a', '#f4a256'];
+  const pieces = 36;
+  for (let i = 0; i < pieces; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti';
+    piece.style.background = colors[i % colors.length];
+    piece.style.left = originX + 'px';
+    piece.style.top = originY + 'px';
+    if (i % 3 === 0) { piece.style.width = '8px'; piece.style.height = '14px'; }
+    else if (i % 3 === 1) { piece.style.borderRadius = '50%'; }
+    document.body.appendChild(piece);
+    const angle = (Math.PI * 2 * i) / pieces + (Math.random() - 0.5) * 0.4;
+    const velocity = 220 + Math.random() * 280;
+    const dx = Math.cos(angle) * velocity;
+    const dy = Math.sin(angle) * velocity - 280;
+    const rotate = (Math.random() - 0.5) * 720;
+    const duration = 900 + Math.random() * 600;
+    piece.animate([
+      { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(${rotate}deg)`, opacity: 1, offset: 0.4 },
+      { transform: `translate(${dx * 1.1}px, ${dy + 600}px) rotate(${rotate * 1.3}deg)`, opacity: 0 },
+    ], { duration, easing: 'cubic-bezier(0.2, 0.7, 0.4, 1)', fill: 'forwards' }).onfinish = () => piece.remove();
+  }
+}
+
+function fireWompWomp(originX, originY) {
+  if (reducedMotion()) return;
+  // Falling, dull "game over" debris + a drifting "womp womp" label.
+  const colors = ['#7a6f60', '#8a7659', '#c4523a', '#5b4a36', '#a0958a'];
+  const pieces = 18;
+  for (let i = 0; i < pieces; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti';
+    piece.style.background = colors[i % colors.length];
+    piece.style.left = originX + 'px';
+    piece.style.top = originY + 'px';
+    if (i % 2 === 0) { piece.style.width = '10px'; piece.style.height = '10px'; piece.style.borderRadius = '2px'; }
+    else { piece.style.borderRadius = '50%'; }
+    document.body.appendChild(piece);
+    const dx = (Math.random() - 0.5) * 160;
+    const dy = 200 + Math.random() * 260;
+    const rotate = (Math.random() - 0.5) * 360;
+    const duration = 900 + Math.random() * 500;
+    piece.animate([
+      { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+      { transform: `translate(${dx * 0.4}px, ${-30}px) rotate(${rotate * 0.3}deg)`, opacity: 1, offset: 0.2 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(${rotate}deg)`, opacity: 0 },
+    ], { duration, easing: 'cubic-bezier(0.4, 0.1, 0.7, 1)', fill: 'forwards' }).onfinish = () => piece.remove();
+  }
+  const label = document.createElement('div');
+  label.className = 'womp-label';
+  label.textContent = 'womp womp';
+  label.style.left = (originX - 50) + 'px';
+  label.style.top = (originY - 20) + 'px';
+  document.body.appendChild(label);
+  label.animate([
+    { transform: 'translateY(0) rotate(-4deg) scale(0.6)', opacity: 0 },
+    { transform: 'translateY(-6px) rotate(-4deg) scale(1.1)', opacity: 1, offset: 0.25 },
+    { transform: 'translateY(40px) rotate(-8deg) scale(1)', opacity: 0 },
+  ], { duration: 1400, easing: 'cubic-bezier(0.3,0.7,0.4,1)', fill: 'forwards' }).onfinish = () => label.remove();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODAL FRAMEWORK
+   ═══════════════════════════════════════════════════════════════════════════ */
+const modalBackdrop = $('modalBackdrop');
+const modalPanel = $('modalPanel');
+function openModal(html, wide) {
+  modalPanel.className = 'modal' + (wide ? ' wide' : '');
+  modalPanel.innerHTML = html;
+  modalBackdrop.classList.add('open');
+}
+function closeModal() { modalBackdrop.classList.remove('open'); modalPanel.innerHTML = ''; }
+modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalBackdrop.classList.contains('open')) closeModal(); });
+
+/* Two-tap-to-confirm on a button */
+function setupConfirmButton(btn, action, opts) {
+  opts = opts || {};
+  let armed = false, timer = null;
+  const original = opts.icon ? btn.innerHTML : btn.textContent;
+  function disarm() { armed = false; if (opts.icon) btn.innerHTML = original; else btn.textContent = original; btn.classList.remove('armed'); if (timer) { clearTimeout(timer); timer = null; } }
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!armed) { armed = true; if (opts.icon) btn.textContent = '✓?'; else btn.textContent = 'Tap again to confirm'; btn.classList.add('armed'); timer = setTimeout(disarm, 4000); }
+    else { action(); disarm(); }
+  });
+  return disarm;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PIN / MANAGE UNLOCK
+   ═══════════════════════════════════════════════════════════════════════════ */
+function openPinModal() {
+  const hasPin = !!store.device.managePin;
+  const setup = !hasPin;
+  openModal(`
+    <h2>${setup ? 'Set a Manage PIN' : 'Enter Manage PIN'}</h2>
+    <p class="sub">${setup ? 'Pick a short PIN grown-ups will use to edit the board. Not high security — keep a backup export as your real safety net.' : 'Enter your PIN to edit the board.'}</p>
+    <div class="field"><input class="pin-input" id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••"></div>
+    ${setup ? '<div class="field"><label>Confirm PIN</label><input class="pin-input" id="pinConfirm" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>' : ''}
+    <div class="af-status err" id="pinErr" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn btn-primary" id="pinGo">${setup ? 'Set PIN & unlock' : 'Unlock'}</button>
+    </div>`);
+  const input = $('pinInput');
+  input.focus();
+  const err = (m) => { const e = $('pinErr'); e.textContent = m; e.style.display = 'block'; input.classList.add('pin-shake'); setTimeout(() => input.classList.remove('pin-shake'), 400); };
+  function submit() {
+    const val = input.value.trim();
+    if (!val) return err('Enter a PIN.');
+    if (setup) {
+      const c = $('pinConfirm').value.trim();
+      if (val.length < 3) return err('Use at least 3 characters.');
+      if (val !== c) return err('PINs do not match.');
+      store.device.managePin = val; saveStore(); closeModal(); setMode('manage');
+    } else {
+      if (val === store.device.managePin) { closeModal(); setMode('manage'); }
+      else err('Wrong PIN.');
+    }
+  }
+  $('pinGo').addEventListener('click', submit);
+  modalPanel.querySelector('[data-close]').addEventListener('click', closeModal);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HEADER (season meta) EDIT
+   ═══════════════════════════════════════════════════════════════════════════ */
+function openHeaderModal() {
+  const s = activeSeason();
+  openModal(`
+    <h2>Edit hunt details</h2>
+    <p class="sub">These set the title, dates, and vibe of the current hunt.</p>
+    <div class="field"><label>Title <span class="req">*</span></label><input id="hTitle" value="${attrSafe(s.title)}"></div>
+    <div class="field"><label>Eyebrow (small line above title)</label><input id="hEyebrow" value="${attrSafe(s.eyebrow)}"></div>
+    <div class="field-grid">
+      <div class="field"><label>Season (optional)</label><input id="hSeason" value="${attrSafe(s.season)}" placeholder="Summer"></div>
+      <div class="field"><label>Year <span class="req">*</span></label><input id="hYear" type="number" value="${attrSafe(s.year)}"></div>
+    </div>
+    <div class="field"><label>Byline (blank = auto from game count)</label><input id="hByline" value="${attrSafe(s.byline)}" placeholder="${attrSafe(generatedByline(s))}"></div>
+    <div class="field-grid">
+      <div class="field"><label>Kid name (footer, optional)</label><input id="hKid" value="${attrSafe(s.kidName)}"></div>
+      <div class="field"><label>Default bounty ($)</label><input id="hBounty" type="number" value="${attrSafe(s.defaultBounty)}"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn btn-primary" id="hSave">Save</button>
+    </div>`);
+  modalPanel.querySelector('[data-close]').addEventListener('click', closeModal);
+  $('hSave').addEventListener('click', () => {
+    const title = $('hTitle').value.trim();
+    const year = parseInt($('hYear').value, 10);
+    if (!title) { $('hTitle').focus(); return; }
+    if (!year) { $('hYear').focus(); return; }
+    s.title = title;
+    s.eyebrow = $('hEyebrow').value.trim();
+    s.season = $('hSeason').value.trim();
+    s.year = year;
+    s.byline = $('hByline').value.trim();
+    s.kidName = $('hKid').value.trim();
+    s.defaultBounty = parseInt($('hBounty').value, 10) || 25;
+    saveStore(); closeModal(); render();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GAME EDIT / ADD  (+ RAWG autofill)
+   ═══════════════════════════════════════════════════════════════════════════ */
+function openGameModal(id) {
+  const s = activeSeason();
+  const editing = !!id;
+  const g = editing ? findGame(id) : newGame({ reward: null });
+  APP.afResults = [];
+  const gradOptions = ['<option value="">Auto (by title)</option>'].concat(GRADIENTS.map((gr, i) => `<option value="${gr}" ${g.cover.gradient === gr ? 'selected' : ''}>Palette ${i + 1}</option>`)).join('');
+  openModal(`
+    <h2>${editing ? 'Edit game' : 'Add game'}</h2>
+    <div class="autofill-box">
+      <div class="field" style="margin-bottom:8px"><label>Auto-fill from RAWG</label>
+        <div class="autofill-row">
+          <input id="afQuery" placeholder="Search a game title…" value="${attrSafe(g.title)}">
+          <button class="btn small" id="afSearch">Search</button>
+        </div>
+      </div>
+      <div class="af-status" id="afStatus"></div>
+      <div class="autofill-results" id="afResults"></div>
+    </div>
+    <div class="field"><label>Title <span class="req">*</span></label><input id="gTitle" value="${attrSafe(g.title)}"></div>
+    <div class="field-grid-3">
+      <div class="field"><label>Bounty ($)</label><input id="gReward" type="number" value="${g.reward == null ? '' : attrSafe(g.reward)}" placeholder="${s.defaultBounty}"></div>
+      <div class="field"><label>Year</label><input id="gYear" type="number" value="${g.year == null ? '' : attrSafe(g.year)}"></div>
+      <div class="field"><label>Rating /10</label><input id="gRating" type="number" min="0" max="10" step="1" value="${g.rating == null ? '' : attrSafe(g.rating)}"></div>
+    </div>
+    <div class="field"><label>Console / System</label><input id="gSystem" value="${attrSafe(g.system)}"></div>
+    <div class="field-grid">
+      <div class="field"><label>Players</label><input id="gPlayers" type="number" min="1" value="${attrSafe(g.players || 1)}"></div>
+      <div class="field"><label>Players note</label><input id="gPlayersNote" value="${attrSafe(g.playersNote)}" placeholder="co-op, tag-team…"></div>
+    </div>
+    <div class="field"><label>Developer</label><input id="gDeveloper" value="${attrSafe(g.developer)}"></div>
+    <div class="field"><label>Completion requirements (one per line)</label>
+      <textarea id="gObjectives" placeholder="Beat the final boss…">${escapeHtml((g.objectives || []).join('\n'))}</textarea>
+      <div class="hint"><a href="#" id="gObjDefault">Use a default</a> · what counts as claiming this bounty</div>
+    </div>
+    <div class="field"><label>Description</label><textarea id="gDescription">${escapeHtml(g.description)}</textarea></div>
+    <div class="field"><label>Walkthrough / hint link</label><input id="gGuide" value="${attrSafe(g.guide)}"></div>
+    <div class="field-grid">
+      <div class="field"><label>Cover monogram</label><input id="gGlyph" maxlength="3" value="${attrSafe(g.cover.glyph)}" placeholder="${autoGlyph(g.title)}"></div>
+      <div class="field"><label>Cover gradient</label><select id="gGradient">${gradOptions}</select></div>
+    </div>
+    <div class="field"><label>Cover art URL (optional — overrides monogram)</label><input id="gCoverArt" value="${attrSafe(g.coverArt)}" placeholder="https://…"></div>
+    <div class="modal-actions">
+      ${editing ? '<button class="btn btn-danger left" id="gDelete">Delete</button>' : ''}
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn btn-primary" id="gSave">${editing ? 'Save' : 'Add game'}</button>
+    </div>`, true);
+
+  modalPanel.querySelector('[data-close]').addEventListener('click', closeModal);
+  $('afSearch').addEventListener('click', runAutofillSearch);
+  $('afQuery').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runAutofillSearch(); } });
+  $('gObjDefault').addEventListener('click', (e) => { e.preventDefault(); const t = $('gObjectives'); if (!t.value.trim()) t.value = 'Beat the game / reach the credits'; });
+  if (editing) { const d = $('gDelete'); if (d) setupConfirmButton(d, () => { deleteGame(id); closeModal(); }); }
+  $('gSave').addEventListener('click', () => {
+    const title = $('gTitle').value.trim();
+    if (!title) { $('gTitle').focus(); return; }
+    const rewardRaw = $('gReward').value.trim();
+    const objectives = $('gObjectives').value.split('\n').map(x => x.trim()).filter(Boolean);
+    const patch = {
+      title,
+      reward: rewardRaw === '' ? null : Number(rewardRaw),
+      year: $('gYear').value.trim() === '' ? null : parseInt($('gYear').value, 10),
+      rating: $('gRating').value.trim() === '' ? null : Math.max(0, Math.min(10, parseInt($('gRating').value, 10))),
+      system: $('gSystem').value.trim(),
+      players: parseInt($('gPlayers').value, 10) || 1,
+      playersNote: $('gPlayersNote').value.trim(),
+      developer: $('gDeveloper').value.trim(),
+      objectives,
+      description: $('gDescription').value.trim(),
+      guide: $('gGuide').value.trim(),
+      cover: { glyph: $('gGlyph').value.trim(), gradient: $('gGradient').value },
+      coverArt: $('gCoverArt').value.trim(),
+    };
+    if (editing) { Object.assign(g, patch); }
+    else {
+      if (s.games.length >= GAME_CAP) { alert('Max ' + GAME_CAP + ' games per hunt.'); return; }
+      Object.assign(g, patch); s.games.push(g);
+    }
+    saveStore(); closeModal(); renderDashboard(); renderBoard();
+  });
+}
+
+async function runAutofillSearch() {
+  const q = $('afQuery').value.trim();
+  const statusEl = $('afStatus');
+  const resultsEl = $('afResults');
+  resultsEl.innerHTML = '';
+  if (!store.device.rawgKey) {
+    statusEl.className = 'af-status err';
+    statusEl.innerHTML = 'No RAWG key set. Add a free key in Manage → Settings to enable auto-fill.';
+    return;
+  }
+  if (!q) return;
+  statusEl.className = 'af-status'; statusEl.textContent = 'Searching…';
+  try {
+    const results = await rawgSearch(q);
+    if (!results.length) { statusEl.textContent = 'No matches found.'; return; }
+    statusEl.textContent = 'Pick a match to fill the form:';
+    resultsEl.innerHTML = results.slice(0, 12).map((r, i) => {
+      const yr = r.released ? r.released.slice(0, 4) : '';
+      const plat = (r.platforms || []).map(p => p.platform.name)[0] || '';
+      return `<div class="af-result" data-i="${i}"><span class="af-name">${escapeHtml(r.name)}</span><span class="af-meta">${escapeHtml([yr, plat].filter(Boolean).join(' · '))}</span></div>`;
+    }).join('');
+    APP.afResults = results;
+    resultsEl.querySelectorAll('.af-result').forEach(el => el.addEventListener('click', () => applyAutofill(results[parseInt(el.dataset.i, 10)])));
+  } catch (e) {
+    statusEl.className = 'af-status err';
+    statusEl.textContent = e && e.message ? e.message : 'RAWG lookup failed.';
+  }
+}
+
+async function applyAutofill(result) {
+  const statusEl = $('afStatus');
+  statusEl.className = 'af-status'; statusEl.textContent = 'Loading details…';
+  try {
+    const detail = await rawgDetail(result.id);
+    const f = toPublicFields(detail);
+    if (f.title) { $('gTitle').value = f.title; $('afQuery').value = f.title; }
+    if (f.year) $('gYear').value = f.year;
+    if (f.developer) $('gDeveloper').value = f.developer;
+    if (f.platform) $('gSystem').value = f.platform;
+    if (f.rating != null) $('gRating').value = f.rating;
+    if (f.description) $('gDescription').value = f.description;
+    if (f.coverImageUrl) $('gCoverArt').value = f.coverImageUrl;
+    if (!$('gGlyph').value.trim()) $('gGlyph').value = autoGlyph(f.title || $('gTitle').value);
+    statusEl.textContent = 'Resolving reference link…';
+    const wiki = await resolveWikipediaUrl(f.title || result.name);
+    if (wiki) $('gGuide').value = wiki;
+    statusEl.textContent = 'Filled in! Tweak anything you like, then Save.';
+  } catch (e) {
+    statusEl.className = 'af-status err';
+    statusEl.textContent = e && e.message ? e.message : 'Could not load details.';
+  }
+}
+
+/* ─── RAWG + Wikipedia (ported from gamer-career) ────────────────────────── */
+const RAWG_BASE = 'https://api.rawg.io/api';
+const PLATFORM_ALIASES = { 'Nintendo Switch': 'Nintendo Switch', 'PC': 'PC', 'PlayStation 5': 'PlayStation 5', 'PlayStation 4': 'PlayStation 4', 'Xbox Series S/X': 'Xbox Series X/S', 'Game Boy Advance': 'Game Boy Advance', 'Nintendo GameCube': 'GameCube', 'SNES': 'SNES', 'Genesis': 'Genesis', 'Game Boy': 'Game Boy' };
+function normalizePlatform(n) { return PLATFORM_ALIASES[n] || n; }
+async function rawgRequest(path) {
+  const key = store.device.rawgKey;
+  if (!key || !key.trim()) throw new Error('No RAWG API key set.');
+  const sep = path.includes('?') ? '&' : '?';
+  const res = await fetch(`${RAWG_BASE}${path}${sep}key=${encodeURIComponent(key)}`);
+  if (res.status === 401) throw new Error('RAWG rejected the API key. Check it in Settings.');
+  if (!res.ok) throw new Error(`RAWG request failed (${res.status}).`);
+  return res.json();
+}
+async function rawgSearch(query) {
+  const data = await rawgRequest(`/games?search=${encodeURIComponent(query.trim())}&page_size=20`);
+  return data.results || [];
+}
+async function rawgDetail(id) { return rawgRequest(`/games/${id}`); }
+function toPublicFields(detail) {
+  let desc = detail.description_raw || '';
+  if (desc) { desc = desc.split('\n').map(x => x.trim()).filter(Boolean)[0] || desc; if (desc.length > 600) desc = desc.slice(0, 597).trim() + '…'; }
+  const rating = typeof detail.metacritic === 'number' ? Math.round(detail.metacritic / 10) : null;
+  return {
+    title: detail.name,
+    developer: (detail.developers || detail.publishers || []).map(p => p.name).join(', ') || '',
+    year: detail.released ? parseInt(detail.released.slice(0, 4), 10) : null,
+    platform: (detail.platforms || []).map(p => normalizePlatform(p.platform.name))[0] || '',
+    rating: rating,
+    description: desc,
+    coverImageUrl: detail.background_image || '',
+  };
+}
+function wikipediaSearchUrl(title) { return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(title)}`; }
+async function resolveWikipediaUrl(title) {
+  const q = (title || '').trim();
+  if (!q) return wikipediaSearchUrl(title);
+  try {
+    const res = await fetch('https://en.wikipedia.org/w/api.php?action=opensearch&format=json&namespace=0&limit=1&origin=*&search=' + encodeURIComponent(q));
+    if (res.ok) { const data = await res.json(); const urls = Array.isArray(data) ? data[3] : null; const link = Array.isArray(urls) ? urls[0] : null; if (link) return link; }
+  } catch (e) { /* fall through */ }
+  return wikipediaSearchUrl(q);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DATA I/O (import / export)  — ported from gamer-career
+   ═══════════════════════════════════════════════════════════════════════════ */
+function downloadFile(name, text, type) {
+  const blob = new Blob([text], { type: type || 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function timestampSlug() {
+  const d = new Date(); const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+function buildBackup() {
+  return { app: APP_ID, version: 2, exportedAt: nowISO(), activeSeasonId: store.activeSeasonId, seasons: store.seasons };
+}
+function exportBackup() { downloadFile(`bounty-hunt-backup-${timestampSlug()}.json`, JSON.stringify(buildBackup(), null, 2)); }
+function exportSeasonJson() {
+  const s = activeSeason();
+  downloadFile(`bounty-hunt-${(s.season || 'season').toLowerCase()}-${s.year}.json`, JSON.stringify({ app: APP_ID, version: 2, exportedAt: nowISO(), season: s }, null, 2));
+}
+function csvCell(v) { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function exportSeasonCsv() {
+  const s = activeSeason();
+  const cols = ['title', 'reward', 'system', 'players', 'playersNote', 'objectives', 'year', 'developer', 'rating', 'status', 'guide'];
+  const rows = [cols.join(',')];
+  s.games.forEach(g => {
+    rows.push([g.title, bountyOf(g), g.system, g.players, g.playersNote, (g.objectives || []).join('; '), g.year, g.developer, g.rating, g.status, g.guide].map(csvCell).join(','));
+  });
+  downloadFile(`bounty-hunt-${(s.season || 'season').toLowerCase()}-${s.year}.csv`, rows.join('\n'), 'text/csv');
+}
+
+/* CSV parsing (ported) */
+function parseCsv(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; } else field += c; }
+    else if (c === '"') inQ = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (c !== '\r') field += c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim() !== ''));
+}
+const CSV_ALIASES = {
+  title: ['title', 'name', 'game'], reward: ['reward', 'bounty', 'amount', 'prize'],
+  system: ['system', 'console', 'platform', 'format'], players: ['players', 'player'],
+  playersNote: ['playersnote', 'players note', 'note'], objectives: ['objectives', 'criteria', 'requirements', 'goals'],
+  year: ['year', 'released'], developer: ['developer', 'dev', 'studio'], rating: ['rating', 'score'],
+  status: ['status', 'outcome'], guide: ['guide', 'walkthrough', 'link', 'url'],
+};
+function csvCol(header, key) { for (const a of CSV_ALIASES[key]) { const i = header.indexOf(a); if (i >= 0) return i; } return -1; }
+function canonTitle(t) {
+  const NUM = { one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10' };
+  const ROM = { ii: '2', iii: '3', iv: '4', vi: '6', vii: '7', viii: '8', ix: '9' };
+  return String(t).toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).map(w => NUM[w] || ROM[w] || w).join(' ').trim();
+}
+function statusFromLabel(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (['complete', 'completed', 'captured', 'won', 'beaten', 'done'].includes(s)) return 'complete';
+  if (['withdrawn', 'withdraw', 'skip', 'skipped', 'later'].includes(s)) return 'withdrawn';
+  if (['rejected', 'reject', 'given up', 'gave up', 'quit'].includes(s)) return 'rejected';
+  return 'open';
+}
+function parseGamesCsv(text) {
+  const grid = parseCsv(text);
+  if (!grid.length) return [];
+  const first = grid[0].map(c => c.trim().toLowerCase());
+  const hasHeader = CSV_ALIASES.title.some(a => first.includes(a));
+  const cols = hasHeader ? {} : { title: 0, reward: 1, system: 2 };
+  if (hasHeader) Object.keys(CSV_ALIASES).forEach(k => cols[k] = csvCol(first, k));
+  const dataRows = hasHeader ? grid.slice(1) : grid;
+  const out = [];
+  dataRows.forEach(cells => {
+    const get = i => (i != null && i >= 0 ? (cells[i] || '').trim() : '');
+    const title = get(cols.title);
+    if (!title) return;
+    out.push(newGame({
+      title,
+      reward: get(cols.reward) ? Number(get(cols.reward).replace(/[^0-9.]/g, '')) : null,
+      system: get(cols.system), players: parseInt(get(cols.players), 10) || 1, playersNote: get(cols.playersNote),
+      objectives: get(cols.objectives) ? get(cols.objectives).split(/[;|]/).map(x => x.trim()).filter(Boolean) : [],
+      year: get(cols.year) ? parseInt(get(cols.year), 10) : null,
+      developer: get(cols.developer), rating: get(cols.rating) ? parseInt(get(cols.rating), 10) : null,
+      status: statusFromLabel(get(cols.status)), guide: get(cols.guide),
+      cover: { glyph: '', gradient: '' },
+    }));
+  });
+  return out;
+}
+
+function openDataModal() {
+  openModal(`
+    <h2>Import / Export</h2>
+    <p class="sub">Back up before each season. Import a backup or a CSV of games.</p>
+    <div class="modal-row"><div class="label-text"><span class="label-main">Full backup (JSON)</span><span class="label-sub">All seasons + history</span></div><button class="btn" id="expBackup">Download</button></div>
+    <div class="modal-row"><div class="label-text"><span class="label-main">This season (JSON)</span><span class="label-sub">Just the active hunt</span></div><button class="btn" id="expSeason">Download</button></div>
+    <div class="modal-row"><div class="label-text"><span class="label-main">This season (CSV)</span><span class="label-sub">Games as a spreadsheet</span></div><button class="btn" id="expCsv">Download</button></div>
+    <div class="field" style="margin-top:18px"><label>Import a file (.json backup or .csv of games)</label><input id="impFile" type="file" accept=".json,.csv,application/json,text/csv"></div>
+    <div class="field"><label>How to apply</label>
+      <select id="impMode">
+        <option value="merge">Merge (add new, keep existing)</option>
+        <option value="replace">Replace (overwrite)</option>
+      </select>
+      <div class="hint">JSON backup: merge/replace all seasons. CSV: merge appends new games (deduped by title) / replace swaps this season's games.</div>
+    </div>
+    <div class="af-status" id="impStatus"></div>
+    <div class="modal-actions">
+      <button class="btn" data-close>Close</button>
+      <button class="btn btn-primary" id="impGo">Import</button>
+    </div>`);
+  modalPanel.querySelector('[data-close]').addEventListener('click', closeModal);
+  $('expBackup').addEventListener('click', exportBackup);
+  $('expSeason').addEventListener('click', exportSeasonJson);
+  $('expCsv').addEventListener('click', exportSeasonCsv);
+  $('impGo').addEventListener('click', doImport);
+}
+
+async function doImport() {
+  const fileInput = $('impFile');
+  const statusEl = $('impStatus');
+  const mode = $('impMode').value;
+  const file = fileInput.files[0];
+  if (!file) { statusEl.className = 'af-status err'; statusEl.textContent = 'Choose a file first.'; return; }
+  const text = await file.text();
+  const isJson = file.name.toLowerCase().endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[');
+  try {
+    if (isJson) {
+      const data = JSON.parse(text);
+      if (data.seasons) {
+        if (mode === 'replace') { store.seasons = data.seasons; store.activeSeasonId = data.activeSeasonId && data.seasons[data.activeSeasonId] ? data.activeSeasonId : Object.keys(data.seasons)[0]; }
+        else { Object.values(data.seasons).forEach(s => { store.seasons[s.id] = s; }); }
+      } else if (data.season) {
+        const s = data.season; store.seasons[s.id] = s; if (mode === 'replace') store.activeSeasonId = s.id;
+      } else { throw new Error('Not a recognizable backup file.'); }
+      saveStore(); closeModal(); render();
+      return;
+    }
+    // CSV → games into active season
+    const games = parseGamesCsv(text);
+    if (!games.length) { statusEl.className = 'af-status err'; statusEl.textContent = 'No game rows found in that CSV.'; return; }
+    const s = activeSeason();
+    if (mode === 'replace') { s.games = games; }
+    else {
+      const seen = new Set(s.games.map(g => canonTitle(g.title)));
+      games.forEach(g => { const k = canonTitle(g.title); if (!seen.has(k)) { seen.add(k); s.games.push(g); } });
+    }
+    if (s.games.length > GAME_CAP) s.games = s.games.slice(0, GAME_CAP);
+    saveStore(); closeModal(); renderDashboard(); renderBoard();
+  } catch (e) {
+    statusEl.className = 'af-status err';
+    statusEl.textContent = e && e.message ? e.message : 'Import failed.';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CLOSE OUT SEASON
+   ═══════════════════════════════════════════════════════════════════════════ */
+function openCloseSeasonModal() {
+  const s = activeSeason();
+  const counts = { complete: 0, withdrawn: 0, rejected: 0, open: 0 };
+  s.games.forEach(g => counts[g.status]++);
+  openModal(`
+    <h2>Close out ${escapeHtml(seasonLabel(s))}</h2>
+    <p class="sub">This archives the current hunt to History and starts a fresh board. Grab a backup first if you want one.</p>
+    <div class="hist-stats" style="margin-bottom:16px">
+      <span class="bd-pill complete"><span class="dotc"></span><b>${counts.complete}</b> captured</span>
+      <span class="bd-pill withdrawn"><span class="dotc"></span><b>${counts.withdrawn}</b> withdrawn</span>
+      <span class="bd-pill rejected"><span class="dotc"></span><b>${counts.rejected}</b> given up</span>
+      <span class="bd-pill open"><span class="dotc"></span><b>${counts.open}</b> still open</span>
+    </div>
+    <div class="field-grid">
+      <div class="field"><label>New season</label><input id="csSeason" value="${attrSafe(s.season)}"></div>
+      <div class="field"><label>New year</label><input id="csYear" type="number" value="${(parseInt(s.year, 10) || new Date().getFullYear()) + 1}"></div>
+    </div>
+    <div class="modal-row"><div class="label-text"><span class="label-main">Carry withdrawn games forward</span><span class="label-sub">Bring the ${counts.withdrawn} withdrawn game(s) to the new board as open</span></div><label class="toggle-pill"><input type="checkbox" id="csCarry" checked style="margin:6px"></label></div>
+    <div class="modal-actions">
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn btn-primary" id="csGo">Close out & start new</button>
+    </div>`);
+  modalPanel.querySelector('[data-close]').addEventListener('click', closeModal);
+  $('csGo').addEventListener('click', () => {
+    const old = activeSeason();
+    old.closedAt = nowISO();
+    const carry = $('csCarry').checked;
+    const next = makeSeason({
+      title: old.title, eyebrow: old.eyebrow, kidName: old.kidName, defaultBounty: old.defaultBounty,
+      season: $('csSeason').value.trim(), year: parseInt($('csYear').value, 10) || (new Date().getFullYear()),
+    });
+    if (carry) {
+      next.games = old.games.filter(g => g.status === 'withdrawn').map(g => newGame(Object.assign({}, g, {
+        id: uid('g-'), status: 'open', statusAt: null, hinted: false,
+      })));
+    }
+    store.seasons[next.id] = next;
+    store.activeSeasonId = next.id;
+    saveStore(); closeModal(); setView('board'); render();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MANAGE SETTINGS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function openSettingsModal() {
+  const d = store.device;
+  openModal(`
+    <h2>Manage settings</h2>
+    <p class="sub">Device-level settings (kept on this device, never exported).</p>
+    <div class="modal-row">
+      <div class="label-text"><span class="label-main">Theme</span><span class="label-sub">Light, dark, or system</span></div>
+      <div class="toggle-pill" role="group" aria-label="Theme">
+        <button data-theme-set="light" class="${d.themeMode === 'light' ? 'active' : ''}">Light</button>
+        <button data-theme-set="dark" class="${d.themeMode === 'dark' ? 'active' : ''}">Dark</button>
+        <button data-theme-set="auto" class="${d.themeMode === 'auto' ? 'active' : ''}">Auto</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>RAWG API key (for auto-fill)</label><input id="setRawg" type="password" value="${attrSafe(d.rawgKey)}" placeholder="Free key from rawg.io/apidocs"><div class="hint">Stored on this device only. Enables the “Auto-fill from RAWG” search in the game editor.</div></div>
+    <div class="field"><label>Change Manage PIN</label><input id="setPin" type="password" inputmode="numeric" maxlength="8" placeholder="Leave blank to keep current"></div>
+    <div class="modal-row"><div class="label-text"><span class="label-main">Reset all outcomes</span><span class="label-sub">Set every game back to “On the board”</span></div><button class="btn btn-danger" id="resetStatuses">Reset</button></div>
+    <div class="modal-row"><div class="label-text"><span class="label-main">Clear hint pins</span><span class="label-sub">Remove “got a hint” markers</span></div><button class="btn btn-danger" id="resetHints">Clear</button></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" data-close>Done</button>
+    </div>`);
+  modalPanel.querySelector('[data-close]').addEventListener('click', () => {
+    const pin = $('setPin').value.trim();
+    if (pin) { if (pin.length < 3) { alert('PIN must be at least 3 characters.'); return; } store.device.managePin = pin; }
+    store.device.rawgKey = $('setRawg').value.trim();
+    saveStore(); closeModal();
+  });
+  modalPanel.querySelectorAll('[data-theme-set]').forEach(b => b.addEventListener('click', () => {
+    store.device.themeMode = b.dataset.themeSet; saveStore(); applyTheme();
+    modalPanel.querySelectorAll('[data-theme-set]').forEach(x => x.classList.toggle('active', x === b));
+  }));
+  setupConfirmButton($('resetStatuses'), () => { activeSeason().games.forEach(g => { g.status = 'open'; g.statusAt = null; }); saveStore(); renderDashboard(); renderBoard(); });
+  setupConfirmButton($('resetHints'), () => { activeSeason().games.forEach(g => g.hinted = false); saveStore(); renderBoard(); });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WIRING
+   ═══════════════════════════════════════════════════════════════════════════ */
+$('themeBtn').addEventListener('click', () => {
+  const order = ['light', 'dark', 'auto'];
+  store.device.themeMode = order[(order.indexOf(store.device.themeMode) + 1) % order.length];
+  saveStore(); applyTheme();
+});
+$('lockBtn').addEventListener('click', () => { if (APP.mode === 'manage') setMode('user'); else openPinModal(); });
+$('navBoard').addEventListener('click', () => setView('board'));
+$('navHistory').addEventListener('click', () => setView('history'));
+$('sortSelect').addEventListener('change', (e) => {
+  store.device.sort.field = e.target.value;
+  store.device.sort.dir = ['reward', 'rating', 'year', 'status'].includes(e.target.value) ? 'desc' : 'asc';
+  saveStore(); updateControls(); renderBoard();
+});
+$('dirBtn').addEventListener('click', () => { store.device.sort.dir = store.device.sort.dir === 'asc' ? 'desc' : 'asc'; saveStore(); updateControls(); renderBoard(); });
+$('layoutCard').addEventListener('click', () => { store.device.layout = 'card'; saveStore(); updateControls(); renderBoard(); });
+$('layoutCompact').addEventListener('click', () => { store.device.layout = 'compact'; saveStore(); updateControls(); renderBoard(); });
+$('editHeaderBtn').addEventListener('click', openHeaderModal);
+$('addGameBtn').addEventListener('click', () => openGameModal(null));
+$('dataBtn').addEventListener('click', openDataModal);
+$('closeSeasonBtn').addEventListener('click', openCloseSeasonModal);
+$('settingsBtn').addEventListener('click', openSettingsModal);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════════════ */
+loadStore();
+applyTheme();
+setMode(sessionStorage.getItem('bh_manage') === '1' ? 'manage' : 'user');
+setView('board');
+</script>
+</body>
+</html>

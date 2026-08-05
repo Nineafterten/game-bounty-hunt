@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#fef5e0">
+<title>Dad's Video Game Bounty Hunt — Summer 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@10..48,500;10..48,700;10..48,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── DESIGN TOKENS ──────────────────────────────────────────────────────── */
+:root {
+  /* Light theme (default — sun-bleached parchment) */
+  --bg: #fef5e0;
+  --bg-grain: rgba(217, 119, 41, 0.04);
+  --surface: #fffaef;
+  --surface-2: #fdeec9;
+  --ink: #2a1f14;
+  --ink-soft: #5b4a36;
+  --ink-faint: #8a7659;
+  --rule: #e8d4a8;
+  --rule-soft: #f0e0bd;
+
+  --bounty: #d97720;          /* primary orange — sun, "wanted" */
+  --bounty-soft: #f4a256;
+  --bounty-tint: rgba(217, 119, 41, 0.1);
+  --cash: #2d8659;            /* money green — used for $ */
+  --cash-tint: rgba(45, 134, 89, 0.12);
+  --gold: #e0a82e;            /* completion gold */
+  --gold-deep: #b48420;
+  --gold-tint: rgba(224, 168, 46, 0.18);
+  --sky: #4a8db5;             /* accent sky-blue */
+  --rose: #c4527a;            /* hint pin */
+
+  --shadow-card: 0 1px 2px rgba(74, 50, 20, 0.06), 0 8px 24px -10px rgba(74, 50, 20, 0.18);
+  --shadow-lift: 0 4px 8px rgba(74, 50, 20, 0.08), 0 16px 32px -10px rgba(74, 50, 20, 0.25);
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-lg: 22px;
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+}
+
+/* Dark theme — sunset/dusk */
+:root[data-theme="dark"] {
+  --bg: #161220;
+  --bg-grain: rgba(255, 200, 130, 0.025);
+  --surface: #1f1a2c;
+  --surface-2: #2a2238;
+  --ink: #f4ecd8;
+  --ink-soft: #c4b89c;
+  --ink-faint: #8a7e68;
+  --rule: #3a2f4a;
+  --rule-soft: #2d2438;
+
+  --bounty: #f59c4f;
+  --bounty-soft: #ffb877;
+  --bounty-tint: rgba(245, 156, 79, 0.14);
+  --cash: #5dc991;
+  --cash-tint: rgba(93, 201, 145, 0.18);
+  --gold: #f3c44a;
+  --gold-deep: #c8a134;
+  --gold-tint: rgba(243, 196, 74, 0.22);
+  --sky: #7fbce0;
+  --rose: #e87aa3;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 4px 12px rgba(0, 0, 0, 0.5), 0 18px 36px -10px rgba(0, 0, 0, 0.7);
+}
+
+/* ─── RESET ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding-bottom: 80px;
+  position: relative;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input { font-family: inherit; }
+
+/* Subtle grain texture overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  z-index: 1;
+}
+:root[data-theme="dark"] body::before { mix-blend-mode: overlay; opacity: 0.3; }
+
+main { position: relative; z-index: 2; }
+
+/* ─── LAYOUT ─────────────────────────────────────────────────────────────── */
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 20px 0;
+}
+
+/* ─── HEADER ─────────────────────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.brand-mark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.brand-mark .dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--bounty);
+  margin-right: 8px;
+  vertical-align: middle;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.icon-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  transition: all 0.2s ease;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--ink); transform: translateY(-1px); }
+.icon-btn:focus-visible { outline: 2px solid var(--bounty); outline-offset: 2px; }
+.icon-btn svg { width: 18px; height: 18px; }
+
+.topbar-actions { display: flex; gap: 8px; }
+
+/* HERO */
+.hero {
+  position: relative;
+  margin-bottom: 32px;
+  animation: fadeUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bounty);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: '';
+  display: inline-block;
+  width: 22px; height: 1px;
+  background: var(--bounty);
+  opacity: 0.6;
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(36px, 7.5vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.hero h1 .accent {
+  color: var(--bounty);
+  display: inline-block;
+  position: relative;
+}
+.hero h1 .accent::after {
+  content: '';
+  position: absolute;
+  left: -2%; right: -2%;
+  bottom: 4%;
+  height: 8px;
+  background: var(--gold);
+  opacity: 0.35;
+  z-index: -1;
+  transform: skewX(-8deg);
+  border-radius: 2px;
+}
+.hero-year {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3.5vw, 28px);
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink-faint);
+  letter-spacing: -0.01em;
+}
+.hero-tag {
+  margin-top: 14px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  max-width: 540px;
+}
+
+/* ─── DASHBOARD ──────────────────────────────────────────────────────────── */
+.dashboard {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 24px 24px 22px;
+  margin-bottom: 28px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  animation: fadeUp 0.7s 0.1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  overflow: hidden;
+}
+.dashboard::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, var(--bounty-tint) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.stat {
+  position: relative;
+  z-index: 1;
+}
+.stat-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(28px, 5.5vw, 40px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.stat-num .total {
+  font-size: 0.55em;
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+.stat-num.cash { color: var(--cash); }
+.stat-num.gold { color: var(--gold-deep); }
+:root[data-theme="dark"] .stat-num.gold { color: var(--gold); }
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-top: 4px;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.05em;
+}
+.progress-track {
+  flex: 1;
+  height: 10px;
+  background: var(--rule-soft);
+  border-radius: 100px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--bounty) 0%, var(--gold) 100%);
+  border-radius: 100px;
+  transition: width 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.progress-pct {
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ─── SORT CONTROLS ──────────────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.7s 0.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.controls-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.sort-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 8px 32px 8px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a7659' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: all 0.2s ease;
+}
+.sort-select:hover, .sort-select:focus { border-color: var(--bounty); outline: none; }
+.dir-btn {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.dir-btn:hover { border-color: var(--bounty); color: var(--ink); }
+.dir-btn .arrow { font-size: 14px; line-height: 1; }
+
+/* ─── CARD GRID ──────────────────────────────────────────────────────────── */
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease, opacity 0.4s ease;
+  animation: fadeUp 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  grid-template-areas:
+    "cover head check"
+    "cover meta meta"
+    "desc desc desc"
+    "tags tags tags"
+    "foot foot foot";
+  gap: 14px 16px;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--bounty-soft);
+}
+
+/* COMPLETED state */
+.card.completed {
+  background: linear-gradient(135deg, var(--gold-tint) 0%, var(--bounty-tint) 100%);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 8px 24px -8px var(--gold-tint);
+}
+.card.completed::after {
+  content: 'BOUNTY CLAIMED';
+  position: absolute;
+  top: 48px; right: -22px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--gold-deep);
+  background: var(--surface);
+  padding: 5px 36px;
+  transform: rotate(38deg);
+  border-top: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.18), 0 0 0 1px rgba(224,168,46,0.3);
+  animation: stampIn 0.6s cubic-bezier(0.5, 1.5, 0.5, 1) both;
+  z-index: 5;
+  pointer-events: none;
+}
+:root[data-theme="dark"] .card.completed::after {
+  color: var(--gold);
+  background: var(--surface-2);
+}
+@keyframes stampIn {
+  0% { opacity: 0; transform: rotate(38deg) scale(2.2); }
+  60% { opacity: 1; transform: rotate(38deg) scale(0.9); }
+  100% { opacity: 1; transform: rotate(38deg) scale(1); }
+}
+
+/* COVER (stylized) */
+.cover {
+  grid-area: cover;
+  width: 64px; height: 84px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  text-align: center;
+  line-height: 1;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.12);
+  user-select: none;
+  align-self: start;
+}
+.cover-glyph { position: relative; z-index: 2; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+  z-index: 1;
+}
+.cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  z-index: 1;
+}
+
+/* HEAD: title + reward + ordinal */
+.card-head {
+  grid-area: head;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.card-ordinal {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+.card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(18px, 3vw, 22px);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  word-wrap: break-word;
+}
+
+/* CHECKBOX */
+.check {
+  grid-area: check;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+  position: relative;
+  align-self: start;
+  flex-shrink: 0;
+}
+.check:hover { border-color: var(--bounty); transform: scale(1.06); }
+.check:focus-visible { outline: 2px solid var(--bounty); outline-offset: 2px; }
+.check svg { width: 18px; height: 18px; color: var(--gold); opacity: 0; transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.5, 1.5, 0.5, 1); transform: scale(0.5); }
+.card.completed .check {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 6px var(--gold-tint);
+}
+.card.completed .check svg { color: #fff; opacity: 1; transform: scale(1); }
+
+/* META: bounty, system, players */
+.card-meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.bounty-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+  background: var(--cash);
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: -0.01em;
+}
+.bounty-pill .dollar { font-size: 0.8em; opacity: 0.85; margin-right: 1px; }
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+}
+.meta-pill svg { width: 12px; height: 12px; }
+.players-note {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid var(--rule);
+  text-transform: lowercase;
+}
+
+.meta-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gold-deep);
+  margin-left: auto;
+}
+:root[data-theme="dark"] .meta-rating { color: var(--gold); }
+.meta-rating svg { width: 13px; height: 13px; fill: currentColor; }
+
+/* DESCRIPTION */
+.card-desc {
+  grid-area: desc;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+.card-desc-text {
+  display: block;
+  max-height: 3.1em; /* ~2 lines */
+  overflow: hidden;
+  position: relative;
+  transition: max-height 0.4s ease;
+}
+.card-desc-text.expanded { max-height: 30em; }
+.card-desc-toggle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bounty);
+  font-weight: 700;
+  margin-top: 4px;
+  padding: 2px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.card-desc-toggle:hover { color: var(--gold-deep); }
+:root[data-theme="dark"] .card-desc-toggle:hover { color: var(--gold); }
+.card-desc-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.05em;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--rule);
+}
+.card-desc-meta strong { color: var(--ink-soft); font-weight: 700; }
+
+/* TAGS / OBJECTIVES */
+.card-tags {
+  grid-area: tags;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+}
+.tags-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bounty);
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tags-label::before {
+  content: '◆';
+  color: var(--gold-deep);
+  font-size: 10px;
+}
+:root[data-theme="dark"] .tags-label::before { color: var(--gold); }
+.objective-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.objective-list li {
+  font-size: 13.5px;
+  color: var(--ink);
+  padding-left: 18px;
+  position: relative;
+  line-height: 1.45;
+}
+.objective-list li::before {
+  content: '';
+  position: absolute;
+  left: 4px; top: 8px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--bounty);
+}
+
+/* FOOT */
+.card-foot {
+  grid-area: foot;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+.guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  color: var(--sky);
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 1px dashed var(--rule);
+  transition: all 0.2s ease;
+}
+.guide-link:hover {
+  color: var(--bounty);
+  border-color: var(--bounty);
+  background: var(--bounty-tint);
+}
+.guide-link svg { width: 12px; height: 12px; }
+
+.hint-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--rose);
+  background: rgba(196, 82, 122, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(196, 82, 122, 0.3);
+  animation: pinIn 0.4s cubic-bezier(0.5, 1.5, 0.5, 1) both;
+}
+.hint-pin svg { width: 11px; height: 11px; }
+@keyframes pinIn {
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ─── SETTINGS MODAL ─────────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 12, 4, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 20px;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: var(--shadow-lift);
+  transform: scale(0.92);
+  transition: transform 0.3s cubic-bezier(0.5, 1.4, 0.5, 1);
+}
+.modal-backdrop.open .modal { transform: scale(1); }
+.modal h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.015em;
+  margin-bottom: 4px;
+}
+.modal p {
+  color: var(--ink-soft);
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+.modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+}
+.modal-row:first-of-type { border-top: none; padding-top: 6px; }
+.modal-row .label-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.modal-row .label-main { font-weight: 700; font-size: 14px; }
+.modal-row .label-sub { font-size: 12px; color: var(--ink-faint); }
+
+.toggle-pill {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+  padding: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.toggle-pill button {
+  padding: 5px 10px;
+  border-radius: 100px;
+  color: var(--ink-faint);
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.toggle-pill button.active {
+  background: var(--bounty);
+  color: #fff;
+}
+
+.btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  transition: all 0.2s ease;
+}
+.btn:hover { border-color: var(--bounty); color: var(--bounty); }
+.btn-danger { color: #c4523a; }
+.btn-danger:hover { background: rgba(196, 82, 58, 0.1); border-color: #c4523a; color: #c4523a; }
+:root[data-theme="dark"] .btn-danger { color: #ef7a5a; }
+:root[data-theme="dark"] .btn-danger:hover { color: #ef7a5a; border-color: #ef7a5a; }
+.btn.armed {
+  background: #c4523a;
+  color: #fff !important;
+  border-color: #c4523a;
+  animation: armPulse 1s ease-in-out infinite;
+}
+.btn.armed:hover { background: #a83e2a; border-color: #a83e2a; color: #fff !important; }
+:root[data-theme="dark"] .btn.armed { background: #ef7a5a; border-color: #ef7a5a; color: #1f1a2c !important; }
+:root[data-theme="dark"] .btn.armed:hover { background: #f59275; border-color: #f59275; color: #1f1a2c !important; }
+@keyframes armPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 82, 58, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(196, 82, 58, 0); }
+}
+.btn-primary { background: var(--bounty); color: #fff; border-color: var(--bounty); }
+.btn-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ─── CONFETTI ───────────────────────────────────────────────────────────── */
+.confetti {
+  position: fixed;
+  pointer-events: none;
+  z-index: 200;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  opacity: 1;
+  will-change: transform, opacity;
+}
+
+/* ─── FOOTER ─────────────────────────────────────────────────────────────── */
+.foot-mark {
+  text-align: center;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.15em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.foot-mark .heart { color: var(--rose); display: inline-block; animation: heartbeat 2s ease-in-out infinite; }
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  20% { transform: scale(1.2); }
+  40% { transform: scale(1); }
+}
+
+/* ─── ANIMATIONS ─────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .wrap { padding: 20px 14px 0; }
+  .dashboard { padding: 20px 18px; }
+  .card {
+    padding: 16px;
+    grid-template-columns: 56px 1fr auto;
+  }
+  .cover { width: 56px; height: 74px; font-size: 22px; }
+  .check { width: 32px; height: 32px; }
+  .check svg { width: 16px; height: 16px; }
+  .dash-stats { gap: 10px; }
+  .stat-num { font-size: 26px; }
+  .modal { padding: 22px; }
+  .card.completed::after {
+    font-size: 10px;
+    padding: 4px 30px;
+    right: -20px;
+    top: 42px;
+  }
+}
+@media (max-width: 380px) {
+  .card-meta { gap: 4px; }
+  .bounty-pill { font-size: 14px; padding: 3px 8px; }
+  .meta-pill { font-size: 11px; padding: 3px 8px; }
+}
+
+@media (min-width: 760px) {
+  .cards { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .card { animation-delay: calc(var(--idx, 0) * 50ms + 0.3s); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Sortable list animation */
+.cards.sorting .card { transition: opacity 0.2s ease; opacity: 0.4; }
+</style>
+</head>
+<body>
+<main>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand-mark"><span class="dot"></span>Bounty Hunt &middot; Active</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIcon">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-eyebrow">Wanted &middot; Annual Edition</div>
+    <h1>Dad's <span class="accent">Bounty</span> Hunt</h1>
+    <div class="hero-year" id="heroYear">Summer 2026</div>
+    <p class="hero-tag">Ten classic games. Real cash rewards. Beat them, get paid. Go.</p>
+  </header>
+
+  <section class="dashboard" aria-label="Progress dashboard">
+    <div class="dash-stats">
+      <div class="stat">
+        <div class="stat-num"><span id="statCompleted">0</span><span class="total" id="statTotal">/0</span></div>
+        <div class="stat-label">Captured</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num cash">$<span id="statEarned">0</span></div>
+        <div class="stat-label">Earned</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num gold">$<span id="statRemaining">0</span></div>
+        <div class="stat-label">Still on the Board</div>
+      </div>
+    </div>
+    <div class="progress-row">
+      <span>Progress</span>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <span class="progress-pct" id="progressPct">0%</span>
+    </div>
+  </section>
+
+  <div class="controls" role="group" aria-label="Sort controls">
+    <span class="controls-label">Sort by</span>
+    <select class="sort-select" id="sortSelect" aria-label="Sort field">
+      <option value="title">Title</option>
+      <option value="year">Year</option>
+      <option value="system">Console</option>
+      <option value="reward">Reward</option>
+      <option value="completed">Completed</option>
+      <option value="rating">Rating</option>
+    </select>
+    <button class="dir-btn" id="dirBtn" aria-label="Toggle sort direction">
+      <span class="arrow" id="dirArrow">↑</span>
+      <span id="dirLabel">A→Z</span>
+    </button>
+  </div>
+
+  <div class="cards" id="cards" aria-live="polite"></div>
+
+  <div class="foot-mark">
+    Made with <span class="heart">♥</span> for Lucas &middot; Hunt on, kiddo
+  </div>
+</div>
+</main>
+
+<!-- Settings Modal -->
+<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <h2 id="modalTitle">Settings</h2>
+    <p>Tweak the experience or wipe progress if you need a do-over.</p>
+
+    <div class="modal-row">
+      <div class="label-text">
+        <span class="label-main">Theme</span>
+        <span class="label-sub">Light, dark, or follow your system</span>
+      </div>
+      <div class="toggle-pill" role="group" aria-label="Theme">
+        <button data-theme-set="light">Light</button>
+        <button data-theme-set="dark">Dark</button>
+        <button data-theme-set="auto">Auto</button>
+      </div>
+    </div>
+
+    <div class="modal-row">
+      <div class="label-text">
+        <span class="label-main">Reset all checkmarks</span>
+        <span class="label-sub">Clears completion only — keeps hint pins</span>
+      </div>
+      <button class="btn btn-danger" id="resetChecksBtn">Reset</button>
+    </div>
+
+    <div class="modal-row">
+      <div class="label-text">
+        <span class="label-main">Reset hint pins</span>
+        <span class="label-sub">Clears any "got a hint" markers</span>
+      </div>
+      <button class="btn btn-danger" id="resetHintsBtn">Reset</button>
+    </div>
+
+    <div class="modal-row">
+      <div class="label-text">
+        <span class="label-main">Reset everything</span>
+        <span class="label-sub">Full wipe — completions and hints</span>
+      </div>
+      <button class="btn btn-danger" id="resetAllBtn">Wipe</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="closeModalBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONFIG — edit this block once a year and you're done
+   ═══════════════════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  year: 2026,
+  storageKey: 'bountyHunt2026', // bump this if you want a fresh start next year
+
+  // Cover-glyph styles: pick any short string (1-3 chars / emoji) and a gradient
+  // Each game gets a distinct visual mark. No copyrighted box art.
+  games: [
+    {
+      id: 'ori',
+      title: 'Ori and the Blind Forest',
+      reward: 30,
+      system: 'Xbox Series X',
+      players: 1,
+      objectives: ['Defeat Kuro and save the forest of Nibel'],
+      year: 2015,
+      developer: 'Moon Studios',
+      rating: 9,
+      cover: { glyph: 'OR', gradient: 'linear-gradient(135deg, #4a90e2, #b993ff)' },
+      description: 'A breathtaking hand-painted Metroidvania where you guide Ori, a small forest spirit, through a dying world. Stunning visuals, an emotional story about love and sacrifice, and platforming that asks for precision but rewards patience. The escape sequences are some of the most cinematic moments in modern gaming.',
+      guide: 'https://strategywiki.org/wiki/Ori_and_the_Blind_Forest/Walkthrough',
+    },
+    {
+      id: 'pkmn-fr',
+      title: 'Pokémon: Fire Red',
+      reward: 30,
+      system: 'Nintendo Switch (NSO GBA)',
+      players: 1,
+      objectives: [
+        'Defeat the Elite Four and become the Pokémon Champion',
+        'Defeat or capture Mewtwo',
+      ],
+      year: 2004,
+      developer: 'Game Freak',
+      rating: 8,
+      cover: { glyph: 'FR', gradient: 'linear-gradient(135deg, #ff5a36, #ffb84d)' },
+      description: 'The remake of the original Pokémon Red — Kanto, all 151 originals, and the gym-leader-to-Elite-Four arc that defined the series. Fire Red adds a post-game in the Sevii Islands, polished sprites, and quality-of-life updates that make it the definitive way to experience Gen 1. Mewtwo waits in Cerulean Cave once you\'ve earned the title.',
+      guide: 'https://gamefaqs.gamespot.com/gba/562124-pokemon-firered-version/faqs/30445',
+    },
+    {
+      id: 'dkc',
+      title: 'Donkey Kong Country',
+      reward: 30,
+      system: 'Nintendo Switch Online (SNES)',
+      players: 2,
+      playersNote: 'tag-team',
+      objectives: ['Defeat King K. Rool and recover the stolen banana hoard'],
+      year: 1994,
+      developer: 'Rare',
+      rating: 9,
+      cover: { glyph: 'DK', gradient: 'linear-gradient(135deg, #b4663a, #8a3a1f)' },
+      description: 'Rare\'s pre-rendered 3D-on-SNES platformer was a graphical bombshell in 1994 and the soundtrack still slaps. Tight controls, mine-cart chaos, and a co-op-friendly partner system (Diddy can ride along as a backup if Lucas wants help). One of the best 2D platformers ever made — and the launch point for a whole franchise.',
+      guide: 'https://gamefaqs.gamespot.com/snes/588282-donkey-kong-country/faqs/81279',
+    },
+    {
+      id: 'zelda-alttp',
+      title: 'The Legend of Zelda: A Link to the Past',
+      reward: 40,
+      system: 'Nintendo Switch Online (SNES)',
+      players: 1,
+      objectives: ['Save Princess Zelda, defeat Ganon, and restore peace to Hyrule'],
+      year: 1991,
+      developer: 'Nintendo EAD',
+      rating: 10,
+      cover: { glyph: 'LP', gradient: 'linear-gradient(135deg, #2d8659, #5dc991)' },
+      description: 'The blueprint. Every top-down Zelda since owes its existence to this game — the Light World/Dark World split, the dungeon-item-puzzle loop, the Master Sword, the Hookshot. It still holds up beautifully and is widely considered one of the greatest games ever made. Pencil-and-paper map-making optional but encouraged.',
+      guide: 'https://www.zeldadungeon.net/a-link-to-the-past-walkthrough/',
+    },
+    {
+      id: 'super-metroid',
+      title: 'Super Metroid',
+      reward: 40,
+      system: 'Nintendo Switch Online (SNES)',
+      players: 1,
+      objectives: ['Defeat Mother Brain and escape the planet Zebes'],
+      year: 1994,
+      developer: 'Nintendo R&D1',
+      rating: 10,
+      cover: { glyph: 'SM', gradient: 'linear-gradient(135deg, #c4523a, #f59c4f)' },
+      description: 'Atmospheric, lonely, and still basically perfect 30+ years later. Samus Aran on Zebes — minimal hand-holding, environmental storytelling, and a final escape sequence that genuinely never stops being thrilling. The "Metroid" in Metroidvania. Worth taking slowly; the game rewards exploration.',
+      guide: 'https://gamefaqs.gamespot.com/snes/588741-super-metroid/faqs/70645',
+    },
+    {
+      id: 'ff4',
+      title: 'Final Fantasy IV',
+      reward: 50,
+      system: 'Xbox Series X (Pixel Remaster)',
+      players: 1,
+      objectives: ['Defeat Zeromus and save the world from destruction'],
+      year: 1991,
+      developer: 'Square',
+      rating: 9,
+      cover: { glyph: 'IV', gradient: 'linear-gradient(135deg, #2c4a8a, #8aa6d4)' },
+      description: 'The JRPG that taught the genre how to tell a real story. Cecil starts as a Dark Knight troubled by his orders, and the game follows his transformation — both literal and personal — across an unforgettable arc that spans kingdoms, the underworld, and the moon. FFIV introduced the Active Time Battle system that defined the series for a decade, and Uematsu\'s soundtrack here is one of his all-time best. The Pixel Remaster polishes the visuals while keeping the heart of the original intact.',
+      guide: 'https://gamefaqs.gamespot.com/pc/323467-final-fantasy-iv-pixel-remaster/faqs/79579/about',
+    },
+    {
+      id: 'acnh',
+      title: 'Animal Crossing: New Horizons',
+      reward: 40,
+      system: 'Nintendo Switch',
+      players: 1,
+      objectives: ['Get a 3-Star Island Rating'],
+      year: 2020,
+      developer: 'Nintendo EPD',
+      rating: 9,
+      cover: { glyph: 'AC', gradient: 'linear-gradient(135deg, #5dc991, #f3c44a)' },
+      description: 'A peaceful, open-ended island life sim — fish, dig fossils, decorate, befriend villagers, slowly build something that\'s yours. The 3-star island rating is the unofficial "you finished the main loop" milestone: it requires landscaping, populated villager housing, and a thoughtfully placed set of decorations. No combat, no time pressure, just vibes.',
+      guide: 'https://animalcrossing.fandom.com/wiki/Island_evaluation',
+    },
+    {
+      id: 'sonic3k',
+      title: 'Sonic the Hedgehog 3 + Knuckles',
+      reward: 40,
+      system: 'Xbox Series X (Sonic Origins)',
+      players: 2,
+      playersNote: 'co-op w/ Tails',
+      objectives: [
+        'Get Super Sonic',
+        'Defeat Dr. Eggman in the Doomsday Zone',
+      ],
+      year: 1994,
+      developer: 'Sonic Team',
+      rating: 9,
+      cover: { glyph: 'S3', gradient: 'linear-gradient(135deg, #1f5fc4, #4a90e2)' },
+      description: 'Sonic 3 and Sonic & Knuckles were originally released as two halves of a single game and "lock-on" together via the Sonic Origins compilation. The combined adventure is the most ambitious 2D Sonic ever — multiple paths, save files, the introduction of Knuckles, and the iconic Special Stages where you collect Chaos Emeralds to unlock Super Sonic.',
+      guide: 'https://gamefaqs.gamespot.com/pc/620568-sonic-3-and-knuckles/faqs/32166',
+    },
+    {
+      id: 'smrpg',
+      title: 'Super Mario RPG (Remake)',
+      reward: 30,
+      system: 'Nintendo Switch',
+      players: 1,
+      objectives: ['Defeat Smithy and save the Mushroom Kingdom'],
+      year: 2023,
+      developer: 'ArtePiazza / Nintendo',
+      rating: 8,
+      cover: { glyph: 'MR', gradient: 'linear-gradient(135deg, #e63946, #ffb84d)' },
+      description: 'A faithful, gorgeous remake of the 1996 SNES original — Mario\'s first RPG, a Square-Nintendo collaboration that introduced a chunk of characters who became series regulars (Geno, Mallow). Timed action commands make turn-based combat feel alive, and "any difficulty" means breezy mode is perfectly fair if a fight feels stuck.',
+      guide: 'https://www.nintendolife.com/guides/super-mario-rpg-walkthrough-tips-all-secrets-minigames-and-bosses',
+    },
+    {
+      id: 'portal2',
+      title: 'Portal 2',
+      reward: 50,
+      system: 'Xbox Series X',
+      players: 1,
+      objectives: ['Complete the story and escape Aperture Science'],
+      year: 2011,
+      developer: 'Valve',
+      rating: 10,
+      cover: { glyph: 'P2', gradient: 'linear-gradient(135deg, #ff7a1a, #4a90e2)' },
+      description: 'One of the funniest, smartest games ever made. You are a test subject in the ruins of Aperture Science, armed with a portal gun and accompanied by an increasingly unhinged AI named Wheatley. The puzzles teach you their own logic and keep escalating; the writing is sharper than most films. Co-op mode is also incredible if you ever want to play through it together.',
+      guide: 'https://www.thonky.com/portal-2-walkthrough/',
+    },
+  ],
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════════════════════ */
+const STATE = {
+  completed: {},  // {gameId: true}
+  hinted: {},     // {gameId: true} — guide link clicked
+  sort: { field: 'title', dir: 'asc' },
+  themeMode: 'auto', // 'light' | 'dark' | 'auto'
+};
+
+/* ─── PERSISTENCE ────────────────────────────────────────────────────────── */
+function loadState() {
+  try {
+    const raw = localStorage.getItem(CONFIG.storageKey);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.completed && typeof data.completed === 'object') STATE.completed = data.completed;
+    if (data.hinted && typeof data.hinted === 'object') STATE.hinted = data.hinted;
+    if (data.sort && typeof data.sort === 'object') Object.assign(STATE.sort, data.sort);
+    if (data.themeMode) STATE.themeMode = data.themeMode;
+  } catch (e) {
+    console.warn('Failed to load saved state:', e);
+  }
+}
+function saveState() {
+  try {
+    localStorage.setItem(CONFIG.storageKey, JSON.stringify({
+      completed: STATE.completed,
+      hinted: STATE.hinted,
+      sort: STATE.sort,
+      themeMode: STATE.themeMode,
+    }));
+  } catch (e) {
+    console.warn('Failed to save state:', e);
+  }
+}
+
+/* ─── THEME ──────────────────────────────────────────────────────────────── */
+function applyTheme() {
+  const mql = window.matchMedia('(prefers-color-scheme: dark)');
+  let resolved;
+  if (STATE.themeMode === 'auto') {
+    resolved = mql.matches ? 'dark' : 'light';
+  } else {
+    resolved = STATE.themeMode;
+  }
+  document.documentElement.setAttribute('data-theme', resolved);
+  // Update meta theme-color so iOS status bar matches
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', resolved === 'dark' ? '#161220' : '#fef5e0');
+  }
+  // Update icon
+  const icon = document.getElementById('themeIcon');
+  if (icon) {
+    if (resolved === 'dark') {
+      icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    } else {
+      icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+    }
+  }
+  // Update modal toggle
+  document.querySelectorAll('[data-theme-set]').forEach(b => {
+    b.classList.toggle('active', b.dataset.themeSet === STATE.themeMode);
+  });
+}
+
+// Listen for system theme changes when in 'auto'
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (STATE.themeMode === 'auto') applyTheme();
+});
+
+/* ─── DASHBOARD ──────────────────────────────────────────────────────────── */
+function updateDashboard() {
+  const total = CONFIG.games.length;
+  const completed = CONFIG.games.filter(g => STATE.completed[g.id]).length;
+  const earned = CONFIG.games.filter(g => STATE.completed[g.id]).reduce((s, g) => s + g.reward, 0);
+  const totalReward = CONFIG.games.reduce((s, g) => s + g.reward, 0);
+  const remaining = totalReward - earned;
+  const pct = total ? Math.round((completed / total) * 100) : 0;
+
+  document.getElementById('statCompleted').textContent = completed;
+  document.getElementById('statTotal').textContent = '/' + total;
+  document.getElementById('statEarned').textContent = earned;
+  document.getElementById('statRemaining').textContent = remaining;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('heroYear').textContent = 'Summer ' + CONFIG.year;
+}
+
+/* ─── SORT ───────────────────────────────────────────────────────────────── */
+const DIR_LABELS = {
+  title:     { asc: 'A→Z',  desc: 'Z→A'  },
+  year:      { asc: 'Old→New', desc: 'New→Old' },
+  system:    { asc: 'A→Z',  desc: 'Z→A'  },
+  reward:    { asc: 'Low→High', desc: 'High→Low' },
+  completed: { asc: 'Open first', desc: 'Done first' },
+  rating:    { asc: 'Low→High', desc: 'High→Low' },
+};
+
+function getSortedGames() {
+  const games = [...CONFIG.games];
+  const { field, dir } = STATE.sort;
+  const mod = dir === 'asc' ? 1 : -1;
+  games.sort((a, b) => {
+    let av, bv;
+    switch (field) {
+      case 'title':     av = a.title.toLowerCase(); bv = b.title.toLowerCase(); break;
+      case 'year':      av = a.year; bv = b.year; break;
+      case 'system':    av = a.system.toLowerCase(); bv = b.system.toLowerCase(); break;
+      case 'reward':    av = a.reward; bv = b.reward; break;
+      case 'rating':    av = a.rating; bv = b.rating; break;
+      case 'completed': av = STATE.completed[a.id] ? 1 : 0; bv = STATE.completed[b.id] ? 1 : 0; break;
+      default:          av = a.title; bv = b.title;
+    }
+    if (av < bv) return -1 * mod;
+    if (av > bv) return 1 * mod;
+    // tiebreak by title
+    if (a.title < b.title) return -1;
+    if (a.title > b.title) return 1;
+    return 0;
+  });
+  return games;
+}
+
+function updateSortControls() {
+  document.getElementById('sortSelect').value = STATE.sort.field;
+  const labels = DIR_LABELS[STATE.sort.field] || DIR_LABELS.title;
+  document.getElementById('dirLabel').textContent = labels[STATE.sort.dir];
+  document.getElementById('dirArrow').textContent = STATE.sort.dir === 'asc' ? '↑' : '↓';
+}
+
+/* ─── RENDER ─────────────────────────────────────────────────────────────── */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderCard(g, ordinal) {
+  const isCompleted = !!STATE.completed[g.id];
+  const isHinted = !!STATE.hinted[g.id];
+  const stars = '★'.repeat(Math.round(g.rating / 2));
+  const objectivesHtml = g.objectives.map(o => `<li>${escapeHtml(o)}</li>`).join('');
+
+  return `
+    <article class="card ${isCompleted ? 'completed' : ''}" data-game-id="${g.id}" style="--idx:${ordinal - 1}">
+      <div class="cover" style="background: ${g.cover.gradient}" aria-hidden="true">
+        <span class="cover-glyph">${escapeHtml(g.cover.glyph)}</span>
+      </div>
+
+      <div class="card-head">
+        <div class="card-ordinal">№ ${String(ordinal).padStart(2, '0')}</div>
+        <h2 class="card-title">${escapeHtml(g.title)}</h2>
+      </div>
+
+      <button class="check" data-action="toggle" aria-label="Mark ${escapeHtml(g.title)} as ${isCompleted ? 'not completed' : 'completed'}" aria-pressed="${isCompleted}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="5 12 10 17 19 7"/>
+        </svg>
+      </button>
+
+      <div class="card-meta">
+        <span class="bounty-pill"><span class="dollar">$</span>${g.reward}</span>
+        <span class="meta-pill" title="${escapeHtml(g.system)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="6" width="20" height="12" rx="2"/><path d="M8 12h2M14 12h2"/>
+          </svg>
+          ${escapeHtml(g.system)}
+        </span>
+        <span class="meta-pill" title="${g.playersNote ? g.players + ' players — ' + escapeHtml(g.playersNote) : g.players + ' player' + (g.players > 1 ? 's' : '')}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          </svg>
+          ${g.players}P${g.playersNote ? `<span class="players-note">${escapeHtml(g.playersNote)}</span>` : ''}
+        </span>
+        <span class="meta-rating" title="Rating ${g.rating}/10">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"/></svg>
+          ${g.rating}/10
+        </span>
+      </div>
+
+      <div class="card-desc">
+        <span class="card-desc-text" data-desc>${escapeHtml(g.description)}</span>
+        <button class="card-desc-toggle" data-action="expand-desc" aria-expanded="false">
+          <span data-toggle-text>Read more</span>
+          <span aria-hidden="true">→</span>
+        </button>
+        <div class="card-desc-meta">
+          <strong>${g.year}</strong> &middot; ${escapeHtml(g.developer)}
+        </div>
+      </div>
+
+      <div class="card-tags">
+        <div class="tags-label">Capture Criteria</div>
+        <ul class="objective-list">${objectivesHtml}</ul>
+      </div>
+
+      <div class="card-foot">
+        <a class="guide-link" href="${escapeHtml(g.guide)}" target="_blank" rel="noopener noreferrer" data-action="hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Need a hint?
+        </a>
+        ${isHinted ? `
+          <span class="hint-pin" title="Got help on this one">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s-8-4.5-8-11.8A5.4 5.4 0 0 1 12 4a5.4 5.4 0 0 1 8 6.2C20 17.5 12 22 12 22z"/>
+            </svg>
+            Got a hint
+          </span>
+        ` : ''}
+      </div>
+    </article>
+  `;
+}
+
+function renderCards() {
+  const games = getSortedGames();
+  const html = games.map((g, i) => renderCard(g, i + 1)).join('');
+  document.getElementById('cards').innerHTML = html;
+  attachCardListeners();
+}
+
+/* ─── INTERACTIONS ───────────────────────────────────────────────────────── */
+function attachCardListeners() {
+  document.querySelectorAll('.card').forEach(card => {
+    const id = card.dataset.gameId;
+
+    // Toggle completion
+    const checkBtn = card.querySelector('[data-action="toggle"]');
+    if (checkBtn) {
+      checkBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasCompleted = !!STATE.completed[id];
+        if (wasCompleted) {
+          delete STATE.completed[id];
+        } else {
+          STATE.completed[id] = true;
+          // CONFETTI!
+          const rect = checkBtn.getBoundingClientRect();
+          fireConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+        saveState();
+        updateDashboard();
+        // If sort is by completion, re-render the list to reflect new order
+        if (STATE.sort.field === 'completed') {
+          renderCards();
+        } else {
+          // Just update this card in place
+          card.classList.toggle('completed', !wasCompleted);
+          checkBtn.setAttribute('aria-pressed', String(!wasCompleted));
+        }
+      });
+    }
+
+    // Description expand/collapse
+    const descToggle = card.querySelector('[data-action="expand-desc"]');
+    if (descToggle) {
+      descToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const desc = card.querySelector('[data-desc]');
+        const toggleText = descToggle.querySelector('[data-toggle-text]');
+        const expanded = desc.classList.toggle('expanded');
+        toggleText.textContent = expanded ? 'Read less' : 'Read more';
+        descToggle.setAttribute('aria-expanded', String(expanded));
+      });
+    }
+
+    // Guide click → set hint pin
+    const guideLink = card.querySelector('[data-action="hint"]');
+    if (guideLink) {
+      guideLink.addEventListener('click', () => {
+        if (!STATE.hinted[id]) {
+          STATE.hinted[id] = true;
+          saveState();
+          // Add the pin without re-rendering the whole card to avoid jank
+          const foot = card.querySelector('.card-foot');
+          if (foot && !foot.querySelector('.hint-pin')) {
+            const pin = document.createElement('span');
+            pin.className = 'hint-pin';
+            pin.title = 'Got help on this one';
+            pin.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 22s-8-4.5-8-11.8A5.4 5.4 0 0 1 12 4a5.4 5.4 0 0 1 8 6.2C20 17.5 12 22 12 22z"/>
+              </svg>
+              Got a hint
+            `;
+            foot.appendChild(pin);
+          }
+        }
+      });
+    }
+  });
+}
+
+/* ─── CONFETTI ───────────────────────────────────────────────────────────── */
+function fireConfetti(originX, originY) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const colors = ['#d97720', '#e0a82e', '#2d8659', '#4a8db5', '#c4527a', '#f4a256'];
+  const pieces = 36;
+  for (let i = 0; i < pieces; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti';
+    piece.style.background = colors[i % colors.length];
+    piece.style.left = originX + 'px';
+    piece.style.top = originY + 'px';
+    // randomize shape: square or rectangle
+    if (i % 3 === 0) {
+      piece.style.width = '8px';
+      piece.style.height = '14px';
+    } else if (i % 3 === 1) {
+      piece.style.borderRadius = '50%';
+    }
+    document.body.appendChild(piece);
+
+    const angle = (Math.PI * 2 * i) / pieces + (Math.random() - 0.5) * 0.4;
+    const velocity = 220 + Math.random() * 280;
+    const dx = Math.cos(angle) * velocity;
+    const dy = Math.sin(angle) * velocity - 280; // upward bias
+    const rotate = (Math.random() - 0.5) * 720;
+    const duration = 900 + Math.random() * 600;
+
+    piece.animate([
+      { transform: 'translate(0, 0) rotate(0deg)', opacity: 1 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(${rotate}deg)`, opacity: 1, offset: 0.4 },
+      { transform: `translate(${dx * 1.1}px, ${dy + 600}px) rotate(${rotate * 1.3}deg)`, opacity: 0 },
+    ], {
+      duration,
+      easing: 'cubic-bezier(0.2, 0.7, 0.4, 1)',
+      fill: 'forwards',
+    }).onfinish = () => piece.remove();
+  }
+}
+
+/* ─── MODAL ──────────────────────────────────────────────────────────────── */
+const modal = document.getElementById('modal');
+function openModal() {
+  modal.classList.add('open');
+  modal.querySelector('button').focus();
+}
+function closeModal() {
+  modal.classList.remove('open');
+  if (typeof disarmAllResetButtons === 'function') disarmAllResetButtons();
+}
+
+document.getElementById('settingsBtn').addEventListener('click', openModal);
+document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+
+document.querySelectorAll('[data-theme-set]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    STATE.themeMode = btn.dataset.themeSet;
+    saveState();
+    applyTheme();
+  });
+});
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  // Cycle: light → dark → auto
+  const order = ['light', 'dark', 'auto'];
+  const idx = order.indexOf(STATE.themeMode);
+  STATE.themeMode = order[(idx + 1) % order.length];
+  saveState();
+  applyTheme();
+});
+
+/* ─── RESET BUTTONS (two-tap to confirm) ────────────────────────────────── */
+function setupConfirmButton(btn, action) {
+  let armed = false;
+  let armTimer = null;
+  const originalLabel = btn.textContent;
+
+  function disarm() {
+    armed = false;
+    btn.textContent = originalLabel;
+    btn.classList.remove('armed');
+    if (armTimer) { clearTimeout(armTimer); armTimer = null; }
+  }
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!armed) {
+      armed = true;
+      btn.textContent = 'Tap again to confirm';
+      btn.classList.add('armed');
+      // Auto-disarm after 4 seconds
+      armTimer = setTimeout(disarm, 4000);
+    } else {
+      action();
+      disarm();
+    }
+  });
+
+  // Disarm if the modal closes
+  return disarm;
+}
+
+const disarmChecks = setupConfirmButton(document.getElementById('resetChecksBtn'), () => {
+  STATE.completed = {};
+  saveState();
+  updateDashboard();
+  renderCards();
+});
+const disarmHints = setupConfirmButton(document.getElementById('resetHintsBtn'), () => {
+  STATE.hinted = {};
+  saveState();
+  renderCards();
+});
+const disarmAll = setupConfirmButton(document.getElementById('resetAllBtn'), () => {
+  STATE.completed = {};
+  STATE.hinted = {};
+  saveState();
+  updateDashboard();
+  renderCards();
+});
+
+// Disarm any armed buttons when modal closes
+function disarmAllResetButtons() {
+  disarmChecks();
+  disarmHints();
+  disarmAll();
+}
+
+/* ─── SORT CONTROLS ──────────────────────────────────────────────────────── */
+document.getElementById('sortSelect').addEventListener('change', (e) => {
+  STATE.sort.field = e.target.value;
+  // For numeric/quality fields, default to descending; alphabetical default ascending
+  if (['reward', 'rating', 'year', 'completed'].includes(STATE.sort.field)) {
+    STATE.sort.dir = 'desc';
+  } else {
+    STATE.sort.dir = 'asc';
+  }
+  saveState();
+  updateSortControls();
+  renderCards();
+});
+
+document.getElementById('dirBtn').addEventListener('click', () => {
+  STATE.sort.dir = STATE.sort.dir === 'asc' ? 'desc' : 'asc';
+  saveState();
+  updateSortControls();
+  renderCards();
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════════════ */
+loadState();
+applyTheme();
+updateSortControls();
+updateDashboard();
+renderCards();
+</script>
+</body>
+</html>
