@@ -16,7 +16,9 @@ browser (localStorage) and backed up via JSON/CSV export.
   - Add, edit, reorder, and delete games (up to 99). Bounties default to $25.
   - **Auto-fill** a game's details from RAWG + a Wikipedia reference link (needs a free
     RAWG key, set in Manage → Settings).
-  - Import / export the board as JSON (full backup or one season) or CSV (games).
+  - Import / export the board as JSON (full backup or one season) or CSV (games). The
+    **Import / Export**, **Add game** and **Close out season** buttons sit at the right end
+    of the sort and layout row, above the cards, and only appear in manage mode.
   - **Close out a season**, archiving it to the **History** tab and starting a fresh board
     (optionally carrying withdrawn games forward).
 
