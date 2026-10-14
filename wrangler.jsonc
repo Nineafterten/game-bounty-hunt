@@ -1,0 +1,11 @@
+// Serves the single-file board from dist/, which `npm run build` fills with only
+// index.html and _headers, so the legacy/ folder and repo files are never public.
+{
+  "name": "game-bounty-hunt",
+  "compatibility_date": "2026-09-15",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "workers_dev": true
+}

@@ -34,18 +34,18 @@ python3 -m http.server 4177
 Then open <http://localhost:4177/>. You can also just open `index.html` directly
 (`file://`) — only the RAWG/Wikipedia auto-fill needs a network connection.
 
-## Deploy (Netlify + GitHub, auto-deploy on push)
+## Deploy (Cloudflare, auto-deploy on push)
 
-1. Create the GitHub repo and push:
-   ```bash
-   gh repo create game-bounty-hunt --private --source=. --push
-   ```
-2. In Netlify, **Add new site → Import from Git**, pick the repo. Settings:
-   - Build command: *(empty)*
-   - Publish directory: `.`
-   
-   (Or run `netlify init` from this folder.) Netlify then auto-deploys on every push to
-   `main`. `netlify.toml` already sets the publish dir and a `noindex` header.
+Live at https://game-bounty-hunt.nineafterten.com. Cloudflare builds the repo on every push to
+`main`: build command `npm run build`, deploy command `npx wrangler deploy`. The build copies only
+`index.html` and `_headers` into `dist/`, which `wrangler.jsonc` serves, so `legacy/` and the repo's
+other files are never public. `_headers` keeps the board out of search results.
+
+The old `game-bounty-hunt.netlify.app` address only redirects: `netlify-redirect/_redirects` was
+deployed once with `netlify deploy --prod --no-build --dir netlify-redirect --site game-bounty-hunt`.
+
+Board data lives in each browser, per address. To move it, use Manage → Import / Export → Full
+backup on the old address, then import it on the new one.
 
 ## Versioning
 
@@ -57,4 +57,4 @@ footer). To cut a release: `npm version patch` (bumps + git-tags), bump the matc
 
 - `index.html` — the whole app (HTML + CSS + JS).
 - `legacy/bounty-hunt.html` — the original 2026 version, kept for reference.
-- `netlify.toml`, `package.json`, `.gitignore` — deploy + tooling config.
+- `wrangler.jsonc`, `_headers`, `package.json`, `.gitignore` — deploy + tooling config.
