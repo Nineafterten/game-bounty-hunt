@@ -200,6 +200,26 @@ body.mode-manage .mode-badge { color: #fff; background: var(--danger); border-co
   text-transform: uppercase;
 }
 .nav-tabs button.active { background: var(--bounty); color: #fff; }
+.manage-btn {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 100px;
+  border: 1px solid var(--bounty);
+  background: var(--bounty-tint);
+  color: var(--bounty);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+.manage-btn svg { width: 14px; height: 14px; }
+.manage-btn:hover,
+.manage-btn[aria-expanded="true"] { background: var(--bounty); color: #fff; }
 
 /* HERO */
 .hero {
@@ -267,11 +287,6 @@ body.mode-manage .mode-badge { color: #fff; background: var(--danger); border-co
   color: var(--ink-soft);
   max-width: 540px;
 }
-.hero-edit {
-  position: absolute;
-  top: 0; right: 0;
-}
-body.mode-manage .hero-eyebrow { padding-right: 50px; }
 
 /* ─── DASHBOARD ──────────────────────────────────────────────────────────── */
 .dashboard {
@@ -462,29 +477,8 @@ body.mode-manage .hero-eyebrow { padding-right: 50px; }
 .seg button svg { width: 15px; height: 15px; }
 .seg button.active { background: var(--bounty); color: #fff; }
 
-.spacer { flex: 1; }
 
 /* Toolbar action buttons */
-.tb-btn {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 12.5px;
-  letter-spacing: 0.01em;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--rule);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-.tb-btn svg { width: 14px; height: 14px; }
-.tb-btn:hover { border-color: var(--bounty); color: var(--bounty); }
-.tb-btn.primary { background: var(--bounty); color: #fff; border-color: var(--bounty); }
-.tb-btn.primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; }
-.tb-btn.danger:hover { border-color: var(--danger); color: var(--danger); background: rgba(196,82,58,0.08); }
 
 /* ─── CARD GRID ──────────────────────────────────────────────────────────── */
 .cards {
@@ -696,7 +690,7 @@ body.mode-manage .cards:not(.compact) .card-head { padding-right: 28px; }
 .cards:not(.compact) .card-foot { margin-top: 14px; }
 .cards:not(.compact) .card-tags { align-self: start; }
 
-.card-menu {
+.flyout {
   position: fixed;
   z-index: 50;
   display: none;
@@ -707,8 +701,8 @@ body.mode-manage .cards:not(.compact) .card-head { padding-right: 28px; }
   border-radius: var(--radius);
   box-shadow: var(--shadow-lift);
 }
-.card-menu.open { display: block; }
-.card-menu button {
+.flyout.open { display: block; }
+.flyout button {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -720,13 +714,13 @@ body.mode-manage .cards:not(.compact) .card-head { padding-right: 28px; }
   color: var(--ink-soft);
   text-align: left;
 }
-.card-menu button svg { width: 16px; height: 16px; flex-shrink: 0; }
-.card-menu button:hover:not(:disabled),
-.card-menu button:focus-visible { background: var(--surface-2); color: var(--ink); outline: none; }
-.card-menu button:disabled { opacity: 0.4; cursor: default; }
-.card-menu button.del { color: var(--danger); }
-.card-menu button.armed { background: var(--danger); color: #fff; }
-.card-menu .menu-sep { height: 1px; margin: 5px 4px; background: var(--rule); }
+.flyout button svg { width: 16px; height: 16px; flex-shrink: 0; }
+.flyout button:hover:not(:disabled),
+.flyout button:focus-visible { background: var(--surface-2); color: var(--ink); outline: none; }
+.flyout button:disabled { opacity: 0.4; cursor: default; }
+.flyout button.danger { color: var(--danger); }
+.flyout button.armed { background: var(--danger); color: #fff; }
+.flyout .menu-sep { height: 1px; margin: 5px 4px; background: var(--rule); }
 
 /* META: bounty, system, players */
 .card-meta {
@@ -1278,7 +1272,13 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
   .field-grid, .field-grid-3 { grid-template-columns: 1fr; }
   .card.is-complete::after, .card.is-rejected::after { font-size: 10px; padding: 4px 30px; right: -20px; top: 42px; }
 }
+@media (max-width: 480px) {
+  .manage-btn { width: 38px; padding: 0; justify-content: center; }
+  .manage-btn span { display: none; }
+  body.mode-manage #themeBtn { display: none; }  /* theme stays reachable in Manage → Settings */
+}
 @media (max-width: 380px) {
+  .nav-tabs button { padding: 6px 9px; }
   .card-meta { gap: 4px; }
   .bounty-pill { font-size: 14px; padding: 3px 8px; }
   .meta-pill { font-size: 11px; padding: 3px 8px; }
@@ -1315,11 +1315,9 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
           <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
         </svg>
       </button>
-      <button class="icon-btn manage-only" id="settingsBtn" aria-label="Manage settings" title="Manage settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
+      <button class="manage-btn manage-only" id="manageBtn" aria-label="Manage" aria-haspopup="menu" aria-expanded="false" title="Manage the board">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        <span>Manage</span>
       </button>
       <button class="icon-btn" id="lockBtn" aria-label="Manage mode" title="Manage mode">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="lockIcon">
@@ -1334,11 +1332,6 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
     <h1 id="heroTitle">Bounty Hunt</h1>
     <div class="hero-year" id="heroYear"></div>
     <p class="hero-tag" id="heroTag"></p>
-    <button class="icon-btn manage-only hero-edit" id="editHeaderBtn" aria-label="Edit details" title="Edit details">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-    </button>
   </header>
 
   <section class="dashboard" id="dashboard" aria-label="Progress dashboard">
@@ -1387,10 +1380,6 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
-    <div class="spacer"></div>
-    <button class="tb-btn primary manage-only" id="addGameBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add game</button>
-    <button class="tb-btn manage-only" id="dataBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Import / Export</button>
-    <button class="tb-btn danger manage-only" id="closeSeasonBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Close out season</button>
   </div>
 
   <div class="cards" id="board" aria-live="polite"></div>
@@ -1403,7 +1392,7 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
 </div>
 </main>
 
-<div class="card-menu" id="cardMenu" role="menu" aria-label="Manage game"></div>
+<div class="flyout" id="flyout" role="menu"></div>
 <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
   <div class="modal" id="modalPanel"></div>
 </div>
@@ -1739,6 +1728,10 @@ const MENU_ICONS = {
   up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>',
   down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>',
   del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  add: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  data: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>',
+  cog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   bars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>',
 };
 
@@ -1801,7 +1794,7 @@ function renderCardCompact(g, ordinal) {
 }
 
 function renderBoard() {
-  closeCardMenu();
+  closeFlyout();
   const compact = store.device.layout === 'compact';
   const board = $('board');
   board.classList.toggle('compact', compact);
@@ -2072,43 +2065,60 @@ function setupConfirmButton(btn, action, opts) {
   return disarm;
 }
 
-/* Card manage flyout: one shared menu outside the cards, so stamps and dimmed cards never cover it. */
-const cardMenu = $('cardMenu');
-let cardMenuBtn = null;
-function closeCardMenu() {
-  if (!cardMenuBtn) return;
-  cardMenu.classList.remove('open'); cardMenu.innerHTML = '';
-  cardMenuBtn.setAttribute('aria-expanded', 'false');
-  cardMenuBtn = null;
+/* Flyout menus (card tools, Manage): one shared element outside the cards, so stamps and dimmed cards never cover it. */
+const flyout = $('flyout');
+let flyoutBtn = null;
+const MENU_SEP = '<div class="menu-sep" role="separator"></div>';
+function menuItem(key, icon, label, attrs) {
+  return `<button role="menuitem" data-menu="${key}" ${attrs || ''}>${MENU_ICONS[icon]}<span>${label}</span></button>`;
+}
+function closeFlyout() {
+  if (!flyoutBtn) return;
+  flyout.classList.remove('open'); flyout.innerHTML = '';
+  flyoutBtn.setAttribute('aria-expanded', 'false');
+  flyoutBtn = null;
+}
+function openFlyout(btn, label, html, actions) {
+  if (flyoutBtn === btn) { closeFlyout(); return; }
+  closeFlyout();
+  flyout.innerHTML = html;
+  flyout.setAttribute('aria-label', label);
+  flyoutBtn = btn;
+  btn.setAttribute('aria-expanded', 'true');
+  flyout.classList.add('open');
+  const r = btn.getBoundingClientRect(), m = flyout.getBoundingClientRect();
+  const fitsBelow = r.bottom + 6 + m.height <= window.innerHeight;
+  flyout.style.top = (fitsBelow ? r.bottom + 6 : Math.max(8, r.top - 6 - m.height)) + 'px';
+  flyout.style.left = Math.max(8, Math.min(r.right - m.width, window.innerWidth - m.width - 8)) + 'px';
+  Object.keys(actions).forEach(key => flyout.querySelector(`[data-menu="${key}"]`).addEventListener('click', () => { closeFlyout(); actions[key](); }));
+  flyout.querySelector('button:not(:disabled)').focus();
 }
 function openCardMenu(btn, id) {
-  if (cardMenuBtn === btn) { closeCardMenu(); return; }
-  closeCardMenu();
   const games = activeSeason().games;
   const idx = games.findIndex(g => g.id === id);
-  cardMenu.innerHTML = `
-    <button role="menuitem" data-menu="edit">${MENU_ICONS.edit}<span>Edit game</span></button>
-    <button role="menuitem" data-menu="up" ${idx <= 0 ? 'disabled' : ''}>${MENU_ICONS.up}<span>Move up</span></button>
-    <button role="menuitem" data-menu="down" ${idx >= games.length - 1 ? 'disabled' : ''}>${MENU_ICONS.down}<span>Move down</span></button>
-    <div class="menu-sep" role="separator"></div>
-    <button role="menuitem" class="del" data-menu="delete">${MENU_ICONS.del}<span>Delete game</span></button>`;
-  cardMenuBtn = btn;
-  btn.setAttribute('aria-expanded', 'true');
-  cardMenu.classList.add('open');
-  const r = btn.getBoundingClientRect(), m = cardMenu.getBoundingClientRect();
-  const fitsBelow = r.bottom + 6 + m.height <= window.innerHeight;
-  cardMenu.style.top = (fitsBelow ? r.bottom + 6 : Math.max(8, r.top - 6 - m.height)) + 'px';
-  cardMenu.style.left = Math.max(8, Math.min(r.right - m.width, window.innerWidth - m.width - 8)) + 'px';
-  cardMenu.querySelector('[data-menu="edit"]').addEventListener('click', () => { closeCardMenu(); openGameModal(id); });
-  cardMenu.querySelector('[data-menu="up"]').addEventListener('click', () => { closeCardMenu(); moveGame(id, -1); });
-  cardMenu.querySelector('[data-menu="down"]').addEventListener('click', () => { closeCardMenu(); moveGame(id, 1); });
-  setupConfirmButton(cardMenu.querySelector('[data-menu="delete"]'), () => { closeCardMenu(); deleteGame(id); }, { icon: true, armedText: 'Tap again to delete' });
-  cardMenu.querySelector('[data-menu="edit"]').focus();
+  openFlyout(btn, 'Manage game', [
+    menuItem('edit', 'edit', 'Edit game'),
+    menuItem('up', 'up', 'Move up', idx <= 0 ? 'disabled' : ''),
+    menuItem('down', 'down', 'Move down', idx >= games.length - 1 ? 'disabled' : ''),
+    MENU_SEP,
+    menuItem('delete', 'del', 'Delete game', 'class="danger"'),
+  ].join(''), { edit: () => openGameModal(id), up: () => moveGame(id, -1), down: () => moveGame(id, 1) });
+  if (flyoutBtn === btn) setupConfirmButton(flyout.querySelector('[data-menu="delete"]'), () => { closeFlyout(); deleteGame(id); }, { icon: true, armedText: 'Tap again to delete' });
 }
-document.addEventListener('click', (e) => { if (cardMenuBtn && !cardMenu.contains(e.target)) closeCardMenu(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cardMenuBtn) { const b = cardMenuBtn; closeCardMenu(); b.focus(); } });
-window.addEventListener('scroll', closeCardMenu, { passive: true });
-window.addEventListener('resize', closeCardMenu);
+function openManageMenu(btn) {
+  openFlyout(btn, 'Manage', [
+    menuItem('add', 'add', 'Add game'),
+    menuItem('details', 'edit', 'Edit details'),
+    menuItem('data', 'data', 'Import / Export'),
+    menuItem('settings', 'cog', 'Settings'),
+    MENU_SEP,
+    menuItem('close', 'close', 'Close out season', 'class="danger"'),
+  ].join(''), { add: () => openGameModal(null), details: openHeaderModal, data: openDataModal, settings: openSettingsModal, close: openCloseSeasonModal });
+}
+document.addEventListener('click', (e) => { if (flyoutBtn && !flyout.contains(e.target)) closeFlyout(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && flyoutBtn) { const b = flyoutBtn; closeFlyout(); b.focus(); } });
+window.addEventListener('scroll', closeFlyout, { passive: true });
+window.addEventListener('resize', closeFlyout);
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PIN / MANAGE UNLOCK
@@ -2118,7 +2128,7 @@ function openPinModal() {
   const setup = !hasPin;
   openModal(`
     <h2>${setup ? 'Set a Manage PIN' : 'Enter Manage PIN'}</h2>
-    <p class="sub">${setup ? 'Pick a short PIN grown-ups will use to edit the board. Not high security — keep a backup export as your real safety net.' : 'Enter your PIN to edit the board.'}</p>
+    <p class="sub">${setup ? 'Pick a 4–8 digit PIN grown-ups will use to edit the board. Not high security — keep a backup export as your real safety net.' : 'Enter your PIN to edit the board.'}</p>
     <div class="field"><input class="pin-input" id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••"></div>
     ${setup ? '<div class="field"><label>Confirm PIN</label><input class="pin-input" id="pinConfirm" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>' : ''}
     <div class="af-status err" id="pinErr" style="display:none"></div>
@@ -2134,7 +2144,7 @@ function openPinModal() {
     if (!val) return err('Enter a PIN.');
     if (setup) {
       const c = $('pinConfirm').value.trim();
-      if (val.length < 3) return err('Use at least 3 characters.');
+      if (!/^\d{4,8}$/.test(val)) return err('Use 4 to 8 digits.');
       if (val !== c) return err('PINs do not match.');
       store.device.managePin = val; saveStore(); closeModal(); setMode('manage');
     } else {
@@ -2638,7 +2648,7 @@ function openSettingsModal() {
     </div>`);
   modalPanel.querySelector('[data-close]').addEventListener('click', () => {
     const pin = $('setPin').value.trim();
-    if (pin) { if (pin.length < 3) { alert('PIN must be at least 3 characters.'); return; } store.device.managePin = pin; }
+    if (pin) { if (!/^\d{4,8}$/.test(pin)) { alert('PIN must be 4 to 8 digits.'); return; } store.device.managePin = pin; }
     store.device.rawgKey = $('setRawg').value.trim();
     saveStore(); closeModal();
   });
@@ -2671,11 +2681,7 @@ $('sortSelect').addEventListener('change', (e) => {
 $('dirBtn').addEventListener('click', () => { store.device.sort.dir = store.device.sort.dir === 'asc' ? 'desc' : 'asc'; saveStore(); updateControls(); renderBoard(); });
 $('layoutCard').addEventListener('click', () => { store.device.layout = 'card'; saveStore(); updateControls(); renderBoard(); });
 $('layoutCompact').addEventListener('click', () => { store.device.layout = 'compact'; saveStore(); updateControls(); renderBoard(); });
-$('editHeaderBtn').addEventListener('click', openHeaderModal);
-$('addGameBtn').addEventListener('click', () => openGameModal(null));
-$('dataBtn').addEventListener('click', openDataModal);
-$('closeSeasonBtn').addEventListener('click', openCloseSeasonModal);
-$('settingsBtn').addEventListener('click', openSettingsModal);
+$('manageBtn').addEventListener('click', (e) => { e.stopPropagation(); openManageMenu(e.currentTarget); });
 
 /* ═══════════════════════════════════════════════════════════════════════════
    INIT

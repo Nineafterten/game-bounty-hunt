@@ -11,14 +11,14 @@ browser (localStorage) and backed up via JSON/CSV export.
   - **Complete** — won it (confetti + "BOUNTY CLAIMED").
   - **Withdraw** — didn't get to it; can come back next year (muted card).
   - **Reject** — tried it, not for them; won't be reused ("GAME OVER / womp womp").
-- **Manage (edit)** — PIN-locked (padlock button). Grown-ups can:
+- **Manage (edit)** — locked with a 4–8 digit PIN (padlock button). Once unlocked, every
+  grown-up action is in the **Manage** menu next to the padlock, and each card has its own
+  menu (☰) to edit, reorder or delete that game. Grown-ups can:
   - Edit the title / eyebrow / season / year / kid name / default bounty.
   - Add, edit, reorder, and delete games (up to 99). Bounties default to $25.
   - **Auto-fill** a game's details from RAWG + a Wikipedia reference link (needs a free
     RAWG key, set in Manage → Settings).
-  - Import / export the board as JSON (full backup or one season) or CSV (games). The
-    **Import / Export**, **Add game** and **Close out season** buttons sit at the right end
-    of the sort and layout row, above the cards, and only appear in manage mode.
+  - Import / export the board as JSON (full backup or one season) or CSV (games).
   - **Close out a season**, archiving it to the **History** tab and starting a fresh board
     (optionally carrying withdrawn games forward).
 
