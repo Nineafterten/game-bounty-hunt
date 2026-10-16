@@ -166,6 +166,7 @@ body.mode-manage .mode-badge { color: #fff; background: var(--danger); border-co
   width: 38px; height: 38px;
   border-radius: 50%;
   display: grid; place-items: center;
+  justify-content: center;
   background: var(--surface);
   border: 1px solid var(--rule);
   color: var(--ink-soft);
@@ -270,6 +271,7 @@ body.mode-manage .mode-badge { color: #fff; background: var(--danger); border-co
   position: absolute;
   top: 0; right: 0;
 }
+body.mode-manage .hero-eyebrow { padding-right: 50px; }
 
 /* ─── DASHBOARD ──────────────────────────────────────────────────────────── */
 .dashboard {
@@ -510,7 +512,8 @@ body.mode-manage .mode-badge { color: #fff; background: var(--danger); border-co
     "tags tags"
     "status status"
     "foot foot";
-  gap: 14px 16px;
+  grid-template-rows: auto auto auto 1fr auto auto;
+  gap: 0 16px;
 }
 .card:hover {
   transform: translateY(-2px);
@@ -681,9 +684,49 @@ body.mode-manage .mode-badge { color: #fff; background: var(--danger); border-co
   color: var(--ink-soft);
   transition: all 0.15s ease;
 }
-.card-manage .mini:hover { border-color: var(--bounty); color: var(--bounty); }
-.card-manage .mini.del:hover { border-color: var(--danger); color: var(--danger); }
+.card-manage .mini:hover,
+.card-manage .mini[aria-expanded="true"] { border-color: var(--bounty); color: var(--bounty); }
 .card-manage .mini svg { width: 14px; height: 14px; }
+body.mode-manage .cards:not(.compact) .card-head { padding-right: 28px; }
+/* Sections space themselves (no row gap) so a missing one leaves no empty gap; spare height lands above the status row. */
+.cards:not(.compact) .card-meta,
+.cards:not(.compact) .card-desc,
+.cards:not(.compact) .card-tags,
+.cards:not(.compact) .status-row,
+.cards:not(.compact) .card-foot { margin-top: 14px; }
+.cards:not(.compact) .card-tags { align-self: start; }
+
+.card-menu {
+  position: fixed;
+  z-index: 50;
+  display: none;
+  min-width: 190px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lift);
+}
+.card-menu.open { display: block; }
+.card-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-align: left;
+}
+.card-menu button svg { width: 16px; height: 16px; flex-shrink: 0; }
+.card-menu button:hover:not(:disabled),
+.card-menu button:focus-visible { background: var(--surface-2); color: var(--ink); outline: none; }
+.card-menu button:disabled { opacity: 0.4; cursor: default; }
+.card-menu button.del { color: var(--danger); }
+.card-menu button.armed { background: var(--danger); color: #fff; }
+.card-menu .menu-sep { height: 1px; margin: 5px 4px; background: var(--rule); }
 
 /* META: bounty, system, players */
 .card-meta {
@@ -905,6 +948,16 @@ body.mode-manage .mode-badge { color: #fff; background: var(--danger); border-co
   animation: pinIn 0.4s cubic-bezier(0.5, 1.5, 0.5, 1) both;
 }
 .hint-pin svg { width: 11px; height: 11px; }
+.withdrawn-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--ink-faint);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px dashed var(--ink-faint);
+}
 @keyframes pinIn {
   0% { opacity: 0; transform: scale(0.6); }
   100% { opacity: 1; transform: scale(1); }
@@ -1056,6 +1109,7 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
 }
 .toggle-pill button { padding: 5px 10px; border-radius: 100px; color: var(--ink-faint); font-weight: 700; transition: all 0.2s ease; }
 .toggle-pill button.active { background: var(--bounty); color: #fff; }
+.toggle-pill input[type="checkbox"] { margin: 6px; }
 
 /* Forms */
 .field { margin-bottom: 14px; }
@@ -1349,6 +1403,7 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
 </div>
 </main>
 
+<div class="card-menu" id="cardMenu" role="menu" aria-label="Manage game"></div>
 <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
   <div class="modal" id="modalPanel"></div>
 </div>
@@ -1491,6 +1546,7 @@ function loadStore() {
         store = parsed;
         // Backfill any missing device fields
         store.device = Object.assign({ themeMode: 'auto', layout: 'card', sort: { field: 'manual', dir: 'asc' }, rawgKey: '', managePin: '' }, store.device || {});
+        if (archiveStraySeasons()) saveStore();
         return;
       }
     }
@@ -1525,7 +1581,7 @@ function autoGlyph(title) {
 function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; } return h; }
 function gradientFor(g) { return g.cover.gradient || GRADIENTS[hashStr(g.id) % GRADIENTS.length]; }
 function glyphFor(g) { return g.cover.glyph || autoGlyph(g.title); }
-function bountyOf(g) { const s = activeSeason(); return (g.reward == null || g.reward === '') ? (s.defaultBounty || 25) : Number(g.reward); }
+function bountyOf(g, season) { const s = season || activeSeason(); return (g.reward == null || g.reward === '') ? (s.defaultBounty || 25) : Number(g.reward); }
 
 function seasonLabel(s) { return [s.season, s.year].filter(v => v !== '' && v != null).join(' ').trim(); }
 function generatedByline(s) {
@@ -1678,18 +1734,23 @@ function statusBtns(g) {
   </div>`;
 }
 
+const MENU_ICONS = {
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>',
+  del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  bars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>',
+};
+
 function manageCardTools() {
   return `<div class="card-manage manage-only block">
-    <button class="mini" data-action="edit" title="Edit" aria-label="Edit game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-    <button class="mini" data-action="up" title="Move up" aria-label="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
-    <button class="mini" data-action="down" title="Move down" aria-label="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-    <button class="mini del" data-action="delete" title="Delete" aria-label="Delete game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+    <button class="mini" data-action="menu" title="Manage game" aria-label="Manage game" aria-haspopup="menu" aria-expanded="false">${MENU_ICONS.bars}</button>
   </div>`;
 }
 
 function coverHtml(g) {
-  if (g.coverArt) {
-    return `<div class="cover has-art" style="background:${gradientFor(g)}" aria-hidden="true"><img src="${attrSafe(g.coverArt)}" alt="" onerror="this.remove();this.parentNode.classList.remove('has-art')"><span class="cover-glyph" style="position:absolute;opacity:0;">${escapeHtml(glyphFor(g))}</span></div>`;
+  if (g.coverArt && g.useCoverArt !== false) {
+    return `<div class="cover has-art" style="background:${gradientFor(g)}" aria-hidden="true"><img src="${attrSafe(g.coverArt)}" alt="" onerror="this.parentNode.classList.remove('has-art');this.remove()"><span class="cover-glyph" style="position:absolute;opacity:0;">${escapeHtml(glyphFor(g))}</span></div>`;
   }
   return `<div class="cover" style="background:${gradientFor(g)}" aria-hidden="true"><span class="cover-glyph">${escapeHtml(glyphFor(g))}</span></div>`;
 }
@@ -1697,12 +1758,14 @@ function coverHtml(g) {
 function renderCardFull(g, ordinal) {
   const stars = g.rating ? `<span class="meta-rating" title="Rating ${g.rating}/10"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"/></svg>${g.rating}/10</span>` : '';
   const objectivesHtml = (g.objectives || []).filter(Boolean).map(o => `<li>${escapeHtml(o)}</li>`).join('');
-  const tags = objectivesHtml ? `<div class="card-tags"><div class="tags-label">Capture Criteria</div><ul class="objective-list">${objectivesHtml}</ul></div>` : '<div class="card-tags"></div>';
+  const tags = objectivesHtml ? `<div class="card-tags"><div class="tags-label">Capture Criteria</div><ul class="objective-list">${objectivesHtml}</ul></div>` : '';
   const descMeta = (g.year || g.developer) ? `<div class="card-desc-meta"><strong>${g.year || ''}</strong>${g.year && g.developer ? ' · ' : ''}${escapeHtml(g.developer || '')}</div>` : '';
   const desc = g.description ? `<span class="card-desc-text" data-desc>${escapeHtml(g.description)}</span><button class="card-desc-toggle" data-action="expand-desc" aria-expanded="false"><span data-toggle-text>Read more</span><span aria-hidden="true">→</span></button>${descMeta}` : descMeta;
   const playersTitle = g.playersNote ? `${g.players} players — ${escapeHtml(g.playersNote)}` : `${g.players} player${g.players > 1 ? 's' : ''}`;
   const guide = g.guide ? `<a class="guide-link" href="${attrSafe(g.guide)}" target="_blank" rel="noopener noreferrer" data-action="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Need a hint?</a>` : '<span></span>';
   const hint = g.hinted ? `<span class="hint-pin" title="Got help on this one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s-8-4.5-8-11.8A5.4 5.4 0 0 1 12 4a5.4 5.4 0 0 1 8 6.2C20 17.5 12 22 12 22z"/></svg>Got a hint</span>` : '';
+  const footTags = (g.status === 'withdrawn' ? '<span class="withdrawn-tag">Withdrawn — next time</span>' : '') + hint;
+  const foot = g.guide || footTags ? `<div class="card-foot">${guide}${footTags}</div>` : '';
 
   return `<article class="card is-${g.status}" data-game-id="${g.id}" style="--idx:${ordinal - 1}">
     ${coverHtml(g)}
@@ -1717,10 +1780,10 @@ function renderCardFull(g, ordinal) {
       <span class="meta-pill" title="${playersTitle}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>${g.players}P${g.playersNote ? `<span class="players-note">${escapeHtml(g.playersNote)}</span>` : ''}</span>
       ${stars}
     </div>
-    <div class="card-desc">${desc}</div>
+    ${desc ? `<div class="card-desc">${desc}</div>` : ''}
     ${tags}
     ${statusBtns(g)}
-    <div class="card-foot">${guide}${hint}</div>
+    ${foot}
   </article>`;
 }
 
@@ -1738,6 +1801,7 @@ function renderCardCompact(g, ordinal) {
 }
 
 function renderBoard() {
+  closeCardMenu();
   const compact = store.device.layout === 'compact';
   const board = $('board');
   board.classList.toggle('compact', compact);
@@ -1781,15 +1845,8 @@ function attachCardListeners() {
         }
       }
     });
-    // Manage tools
-    const edit = card.querySelector('[data-action="edit"]');
-    if (edit) edit.addEventListener('click', (e) => { e.stopPropagation(); openGameModal(id); });
-    const del = card.querySelector('[data-action="delete"]');
-    if (del) setupConfirmButton(del, () => deleteGame(id), { icon: true });
-    const up = card.querySelector('[data-action="up"]');
-    if (up) up.addEventListener('click', (e) => { e.stopPropagation(); moveGame(id, -1); });
-    const down = card.querySelector('[data-action="down"]');
-    if (down) down.addEventListener('click', (e) => { e.stopPropagation(); moveGame(id, 1); });
+    const menuBtn = card.querySelector('[data-action="menu"]');
+    if (menuBtn) menuBtn.addEventListener('click', (e) => { e.stopPropagation(); openCardMenu(menuBtn, id); });
   });
 }
 
@@ -1850,8 +1907,8 @@ function renderHistory() {
   wrap.innerHTML = seasons.map(s => {
     const counts = { open: 0, complete: 0, withdrawn: 0, rejected: 0 };
     let earned = 0;
-    s.games.forEach(g => { counts[g.status] = (counts[g.status] || 0) + 1; if (g.status === 'complete') earned += bountyOf(g); });
-    const gamesHtml = s.games.map(g => `<div class="hist-game"><span class="hg-status ${g.status}">${STATUS_LABELS[g.status]}</span><span class="hg-title">${escapeHtml(g.title)}</span><span class="hg-reward">$${bountyOf(g)}</span></div>`).join('');
+    s.games.forEach(g => { counts[g.status] = (counts[g.status] || 0) + 1; if (g.status === 'complete') earned += bountyOf(g, s); });
+    const gamesHtml = s.games.map(g => `<div class="hist-game"><span class="hg-status ${g.status}">${STATUS_LABELS[g.status]}</span><span class="hg-title">${escapeHtml(g.title)}</span><span class="hg-reward">$${bountyOf(g, s)}</span></div>`).join('');
     const del = APP.mode === 'manage' ? `<button class="btn btn-danger small manage-only" data-action="del-season" data-id="${s.id}" style="display:inline-flex">Delete</button>` : '';
     return `<div class="hist-card" data-season-id="${s.id}">
       <div class="hist-head">
@@ -1884,8 +1941,11 @@ function renderHistory() {
 /* ═══════════════════════════════════════════════════════════════════════════
    VIEW / CONTROLS
    ═══════════════════════════════════════════════════════════════════════════ */
+function viewFromHash() { return location.hash === '#history' ? 'history' : 'board'; }
 function setView(view) {
   APP.view = view;
+  const hash = view === 'history' ? '#history' : '';
+  if (location.hash !== hash) history.pushState(null, '', hash || location.pathname + location.search);
   $('navBoard').classList.toggle('active', view === 'board');
   $('navHistory').classList.toggle('active', view === 'history');
   $('dashboard').style.display = view === 'board' ? '' : 'none';
@@ -2006,11 +2066,49 @@ function setupConfirmButton(btn, action, opts) {
   function disarm() { armed = false; if (opts.icon) btn.innerHTML = original; else btn.textContent = original; btn.classList.remove('armed'); if (timer) { clearTimeout(timer); timer = null; } }
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!armed) { armed = true; if (opts.icon) btn.textContent = '✓?'; else btn.textContent = 'Tap again to confirm'; btn.classList.add('armed'); timer = setTimeout(disarm, 4000); }
+    if (!armed) { armed = true; btn.textContent = opts.armedText || (opts.icon ? '✓?' : 'Tap again to confirm'); btn.classList.add('armed'); timer = setTimeout(disarm, 4000); }
     else { action(); disarm(); }
   });
   return disarm;
 }
+
+/* Card manage flyout: one shared menu outside the cards, so stamps and dimmed cards never cover it. */
+const cardMenu = $('cardMenu');
+let cardMenuBtn = null;
+function closeCardMenu() {
+  if (!cardMenuBtn) return;
+  cardMenu.classList.remove('open'); cardMenu.innerHTML = '';
+  cardMenuBtn.setAttribute('aria-expanded', 'false');
+  cardMenuBtn = null;
+}
+function openCardMenu(btn, id) {
+  if (cardMenuBtn === btn) { closeCardMenu(); return; }
+  closeCardMenu();
+  const games = activeSeason().games;
+  const idx = games.findIndex(g => g.id === id);
+  cardMenu.innerHTML = `
+    <button role="menuitem" data-menu="edit">${MENU_ICONS.edit}<span>Edit game</span></button>
+    <button role="menuitem" data-menu="up" ${idx <= 0 ? 'disabled' : ''}>${MENU_ICONS.up}<span>Move up</span></button>
+    <button role="menuitem" data-menu="down" ${idx >= games.length - 1 ? 'disabled' : ''}>${MENU_ICONS.down}<span>Move down</span></button>
+    <div class="menu-sep" role="separator"></div>
+    <button role="menuitem" class="del" data-menu="delete">${MENU_ICONS.del}<span>Delete game</span></button>`;
+  cardMenuBtn = btn;
+  btn.setAttribute('aria-expanded', 'true');
+  cardMenu.classList.add('open');
+  const r = btn.getBoundingClientRect(), m = cardMenu.getBoundingClientRect();
+  const fitsBelow = r.bottom + 6 + m.height <= window.innerHeight;
+  cardMenu.style.top = (fitsBelow ? r.bottom + 6 : Math.max(8, r.top - 6 - m.height)) + 'px';
+  cardMenu.style.left = Math.max(8, Math.min(r.right - m.width, window.innerWidth - m.width - 8)) + 'px';
+  cardMenu.querySelector('[data-menu="edit"]').addEventListener('click', () => { closeCardMenu(); openGameModal(id); });
+  cardMenu.querySelector('[data-menu="up"]').addEventListener('click', () => { closeCardMenu(); moveGame(id, -1); });
+  cardMenu.querySelector('[data-menu="down"]').addEventListener('click', () => { closeCardMenu(); moveGame(id, 1); });
+  setupConfirmButton(cardMenu.querySelector('[data-menu="delete"]'), () => { closeCardMenu(); deleteGame(id); }, { icon: true, armedText: 'Tap again to delete' });
+  cardMenu.querySelector('[data-menu="edit"]').focus();
+}
+document.addEventListener('click', (e) => { if (cardMenuBtn && !cardMenu.contains(e.target)) closeCardMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cardMenuBtn) { const b = cardMenuBtn; closeCardMenu(); b.focus(); } });
+window.addEventListener('scroll', closeCardMenu, { passive: true });
+window.addEventListener('resize', closeCardMenu);
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PIN / MANAGE UNLOCK
@@ -2132,7 +2230,8 @@ function openGameModal(id) {
       <div class="field"><label>Cover monogram</label><input id="gGlyph" maxlength="3" value="${attrSafe(g.cover.glyph)}" placeholder="${autoGlyph(g.title)}"></div>
       <div class="field"><label>Cover gradient</label><select id="gGradient">${gradOptions}</select></div>
     </div>
-    <div class="field"><label>Cover art URL (optional — overrides monogram)</label><input id="gCoverArt" value="${attrSafe(g.coverArt)}" placeholder="https://…"></div>
+    <div class="field"><label>Cover art URL (optional)</label><input id="gCoverArt" value="${attrSafe(g.coverArt)}" placeholder="https://…"></div>
+    <div class="modal-row"><div class="label-text"><span class="label-main">Use cover art</span><span class="label-sub">Show the art instead of the monogram</span></div><label class="toggle-pill"><input type="checkbox" id="gUseArt" ${g.coverArt && g.useCoverArt !== false ? 'checked' : ''}></label></div>
     <div class="modal-actions">
       ${editing ? '<button class="btn btn-danger left" id="gDelete">Delete</button>' : ''}
       <button class="btn" data-close>Cancel</button>
@@ -2142,6 +2241,7 @@ function openGameModal(id) {
   modalPanel.querySelector('[data-close]').addEventListener('click', closeModal);
   $('afSearch').addEventListener('click', runAutofillSearch);
   $('afQuery').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runAutofillSearch(); } });
+  $('gCoverArt').addEventListener('input', () => { $('gUseArt').checked = !!$('gCoverArt').value.trim(); });
   $('gObjDefault').addEventListener('click', (e) => { e.preventDefault(); const t = $('gObjectives'); if (!t.value.trim()) t.value = 'Beat the game / reach the credits'; });
   if (editing) { const d = $('gDelete'); if (d) setupConfirmButton(d, () => { deleteGame(id); closeModal(); }); }
   $('gSave').addEventListener('click', () => {
@@ -2163,6 +2263,7 @@ function openGameModal(id) {
       guide: $('gGuide').value.trim(),
       cover: { glyph: $('gGlyph').value.trim(), gradient: $('gGradient').value },
       coverArt: $('gCoverArt').value.trim(),
+      useCoverArt: $('gUseArt').checked,
     };
     if (editing) { Object.assign(g, patch); }
     else {
@@ -2286,6 +2387,38 @@ function timestampSlug() {
 function buildBackup() {
   return { app: APP_ID, version: 2, exportedAt: nowISO(), activeSeasonId: store.activeSeasonId, seasons: store.seasons };
 }
+function sanitizeSeason(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.games)) return null;
+  const games = raw.games.filter(g => g && typeof g === 'object').map(g => newGame(Object.assign({}, g, {
+    title: String(g.title == null ? '' : g.title),
+    objectives: Array.isArray(g.objectives) ? g.objectives : [],
+    cover: Object.assign({ glyph: '', gradient: '' }, g.cover && typeof g.cover === 'object' ? g.cover : {}),
+    status: statusFromLabel(g.status),
+  })));
+  return makeSeason(Object.assign({}, raw, { id: typeof raw.id === 'string' && raw.id ? raw.id : uid('season-'), games }));
+}
+function readBackup(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('That file isn’t a Bounty Hunt backup.');
+  if (data.app !== APP_ID) {
+    throw new Error(data.app ? `That backup is from another app (“${String(data.app).slice(0, 40)}”), not the Bounty Hunt.` : 'That file isn’t a Bounty Hunt backup.');
+  }
+  const single = !(data.seasons && typeof data.seasons === 'object');
+  const raws = single ? (data.season ? [data.season] : []) : Object.values(data.seasons);
+  if (!raws.length) throw new Error('That backup has no seasons in it.');
+  const seasons = raws.map(sanitizeSeason);
+  if (seasons.some(s => !s)) throw new Error('That backup has a damaged season (no games list). Nothing was imported.');
+  return { seasons, single, activeSeasonId: single ? seasons[0].id : data.activeSeasonId };
+}
+/* Only the active season may be open: any other open season shows on neither the Board nor History. */
+function archiveStraySeasons() {
+  let changed = 0;
+  Object.values(store.seasons).forEach(s => {
+    if (s.id === store.activeSeasonId || s.closedAt) return;
+    if (s.games.length) s.closedAt = nowISO(); else delete store.seasons[s.id];
+    changed++;
+  });
+  return changed;
+}
 function exportBackup() { downloadFile(`bounty-hunt-backup-${timestampSlug()}.json`, JSON.stringify(buildBackup(), null, 2)); }
 function exportSeasonJson() {
   const s = activeSeason();
@@ -2376,7 +2509,7 @@ function openDataModal() {
         <option value="merge">Merge (add new, keep existing)</option>
         <option value="replace">Replace (overwrite)</option>
       </select>
-      <div class="hint">JSON backup: merge/replace all seasons. CSV: merge appends new games (deduped by title) / replace swaps this season's games.</div>
+      <div class="hint">JSON backup: replace swaps in all its seasons; merge adds its seasons (updating any with the same id), filing any unfinished hunt from it under History. A single-season file on replace becomes the board and the current hunt moves to History. CSV: merge appends new games (deduped by title) / replace swaps this season's games.</div>
     </div>
     <div class="af-status" id="impStatus"></div>
     <div class="modal-actions">
@@ -2400,13 +2533,20 @@ async function doImport() {
   const isJson = file.name.toLowerCase().endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[');
   try {
     if (isJson) {
-      const data = JSON.parse(text);
-      if (data.seasons) {
-        if (mode === 'replace') { store.seasons = data.seasons; store.activeSeasonId = data.activeSeasonId && data.seasons[data.activeSeasonId] ? data.activeSeasonId : Object.keys(data.seasons)[0]; }
-        else { Object.values(data.seasons).forEach(s => { store.seasons[s.id] = s; }); }
-      } else if (data.season) {
-        const s = data.season; store.seasons[s.id] = s; if (mode === 'replace') store.activeSeasonId = s.id;
-      } else { throw new Error('Not a recognizable backup file.'); }
+      let data;
+      try { data = JSON.parse(text); } catch (e) { throw new Error('That file isn’t valid JSON.'); }
+      const backup = readBackup(data);
+      if (mode === 'replace') {
+        const incoming = {};
+        backup.seasons.forEach(s => { incoming[s.id] = s; });
+        const activeId = incoming[backup.activeSeasonId] ? backup.activeSeasonId : backup.seasons[0].id;
+        if (backup.single) store.seasons[activeId] = incoming[activeId];
+        else store.seasons = incoming;
+        store.activeSeasonId = activeId;
+      } else {
+        backup.seasons.forEach(s => { store.seasons[s.id] = s; });
+      }
+      archiveStraySeasons();
       saveStore(); closeModal(); render();
       return;
     }
@@ -2458,7 +2598,7 @@ function openCloseSeasonModal() {
     old.closedAt = nowISO();
     const carry = $('csCarry').checked;
     const next = makeSeason({
-      title: old.title, eyebrow: old.eyebrow, kidName: old.kidName, defaultBounty: old.defaultBounty,
+      title: old.title, eyebrow: old.eyebrow, kidName: old.kidName, byline: old.byline, defaultBounty: old.defaultBounty,
       season: $('csSeason').value.trim(), year: parseInt($('csYear').value, 10) || (new Date().getFullYear()),
     });
     if (carry) {
@@ -2490,6 +2630,7 @@ function openSettingsModal() {
     </div>
     <div class="field" style="margin-top:14px"><label>RAWG API key (for auto-fill)</label><input id="setRawg" type="password" value="${attrSafe(d.rawgKey)}" placeholder="Free key from rawg.io/apidocs"><div class="hint">Stored on this device only. Enables the “Auto-fill from RAWG” search in the game editor.</div></div>
     <div class="field"><label>Change Manage PIN</label><input id="setPin" type="password" inputmode="numeric" maxlength="8" placeholder="Leave blank to keep current"></div>
+    <div class="modal-row"><div class="label-text"><span class="label-main">Remove PIN</span><span class="label-sub">The next unlock asks for a new one</span></div><button class="btn btn-danger" id="resetPin">Remove</button></div>
     <div class="modal-row"><div class="label-text"><span class="label-main">Reset all outcomes</span><span class="label-sub">Set every game back to “On the board”</span></div><button class="btn btn-danger" id="resetStatuses">Reset</button></div>
     <div class="modal-row"><div class="label-text"><span class="label-main">Clear hint pins</span><span class="label-sub">Remove “got a hint” markers</span></div><button class="btn btn-danger" id="resetHints">Clear</button></div>
     <div class="modal-actions">
@@ -2505,6 +2646,7 @@ function openSettingsModal() {
     store.device.themeMode = b.dataset.themeSet; saveStore(); applyTheme();
     modalPanel.querySelectorAll('[data-theme-set]').forEach(x => x.classList.toggle('active', x === b));
   }));
+  setupConfirmButton($('resetPin'), () => { store.device.managePin = ''; saveStore(); });
   setupConfirmButton($('resetStatuses'), () => { activeSeason().games.forEach(g => { g.status = 'open'; g.statusAt = null; }); saveStore(); renderDashboard(); renderBoard(); });
   setupConfirmButton($('resetHints'), () => { activeSeason().games.forEach(g => g.hinted = false); saveStore(); renderBoard(); });
 }
@@ -2520,6 +2662,7 @@ $('themeBtn').addEventListener('click', () => {
 $('lockBtn').addEventListener('click', () => { if (APP.mode === 'manage') setMode('user'); else openPinModal(); });
 $('navBoard').addEventListener('click', () => setView('board'));
 $('navHistory').addEventListener('click', () => setView('history'));
+window.addEventListener('popstate', () => setView(viewFromHash()));
 $('sortSelect').addEventListener('change', (e) => {
   store.device.sort.field = e.target.value;
   store.device.sort.dir = ['reward', 'rating', 'year', 'status'].includes(e.target.value) ? 'desc' : 'asc';
@@ -2540,7 +2683,7 @@ $('settingsBtn').addEventListener('click', openSettingsModal);
 loadStore();
 applyTheme();
 setMode(sessionStorage.getItem('bh_manage') === '1' ? 'manage' : 'user');
-setView('board');
+setView(viewFromHash());
 </script>
 </body>
 </html>

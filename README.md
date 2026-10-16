@@ -47,7 +47,7 @@ The old `game-bounty-hunt.netlify.app` address only redirects: `netlify-redirect
 deployed once with `netlify deploy --prod --no-build --dir netlify-redirect --site game-bounty-hunt`.
 
 Board data lives in each browser, per address. To move it, use Manage → Import / Export → Full
-backup on the old address, then import it on the new one.
+backup on the old address, then import it on the new one with **Replace**.
 
 ## Versioning
 
