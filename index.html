@@ -1201,6 +1201,27 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
 }
 .modal-actions .left { margin-right: auto; }
 
+/* First-run setup */
+.preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  background: var(--bounty-tint);
+  border: 1px dashed var(--bounty);
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+.preset-btn:hover { background: var(--gold-tint); border-style: solid; }
+.preset-btn .preset-main { font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.preset-btn .preset-sub { font-size: 12px; color: var(--ink-soft); }
+.field input[aria-invalid="true"] { border-color: var(--danger); }
+#heroTitle:focus { outline: none; }
+
 /* PIN */
 .pin-input {
   font-family: var(--font-mono);
@@ -1403,11 +1424,12 @@ body.mode-manage .cards.compact .card-manage { display: flex; }
 /* ═══════════════════════════════════════════════════════════════════════════
    CONSTANTS
    ═══════════════════════════════════════════════════════════════════════════ */
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 const STORAGE_KEY = 'dadBountyHunt.v2';
 const LEGACY_KEY = 'bountyHunt2026';
 const APP_ID = 'dad-bounty-hunt';
 const GAME_CAP = 99;
+const PIN_RE = /^\d{4,8}$/;
 
 const STATUS_LABELS = { open: 'On the Board', complete: 'Complete', withdrawn: 'Withdrawn', rejected: 'Rejected' };
 
@@ -1440,6 +1462,9 @@ const DEFAULT_GAMES = [
   { title: 'Portal 2', reward: 50, system: 'Xbox Series X', players: 1, objectives: ['Complete the story and escape Aperture Science'], year: 2011, developer: 'Valve', rating: 10, cover: { glyph: 'P2', gradient: GRADIENTS[9] }, description: 'One of the funniest, smartest games ever made. You are a test subject in the ruins of Aperture Science, armed with a portal gun and an increasingly unhinged AI named Wheatley.', guide: 'https://www.thonky.com/portal-2-walkthrough/' },
 ];
 
+/* The original board, offered as a one-tap preset on first run. */
+const DADS_ANNUAL = { title: "Dad's Annual Game Bounty Hunt", defaultBounty: 25 };
+
 /* ═══════════════════════════════════════════════════════════════════════════
    STORE (persisted)
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1463,7 +1488,7 @@ function newGame(overrides) {
 function makeSeason(overrides) {
   return Object.assign({
     id: uid('season-'),
-    title: "Dad's Annual Game Bounty Hunt",
+    title: 'Game Bounty Hunt',
     eyebrow: 'Wanted · Annual Edition',
     season: 'Summer',
     year: new Date().getFullYear(),
@@ -1476,19 +1501,32 @@ function makeSeason(overrides) {
   }, overrides || {});
 }
 
-function defaultStore() {
-  const season = makeSeason({ id: 'season-1', season: 'Summer', year: 2026 });
-  season.games = DEFAULT_GAMES.map((g, i) => newGame(Object.assign({}, g, {
+function defaultDevice() {
+  return { themeMode: 'auto', layout: 'card', sort: { field: 'manual', dir: 'asc' }, rawgKey: '', managePin: '' };
+}
+
+function starterGames() {
+  return DEFAULT_GAMES.map((g, i) => newGame(Object.assign({}, g, {
     id: uid('g-'),
     cover: { glyph: g.cover.glyph, gradient: g.cover.gradient || GRADIENTS[i % GRADIENTS.length] },
   })));
-  return {
-    schemaVersion: 2,
-    app: APP_ID,
-    device: { themeMode: 'auto', layout: 'card', sort: { field: 'manual', dir: 'asc' }, rawgKey: '', managePin: '' },
-    activeSeasonId: season.id,
-    seasons: { [season.id]: season },
-  };
+}
+
+function emptyStore() {
+  return { schemaVersion: 2, app: APP_ID, device: defaultDevice(), activeSeasonId: null, seasons: {} };
+}
+
+function storeWithSeason(season) {
+  const st = emptyStore();
+  st.activeSeasonId = season.id;
+  st.seasons[season.id] = season;
+  return st;
+}
+
+function defaultStore() {
+  const season = makeSeason(Object.assign({ id: 'season-1', season: 'Summer', year: 2026 }, DADS_ANNUAL));
+  season.games = starterGames();
+  return storeWithSeason(season);
 }
 
 /* Migrate legacy v1 completion/hint state onto the seeded default games. */
@@ -1526,6 +1564,11 @@ function applyLegacyState(st) {
   } catch (e) { /* ignore — start fresh */ }
 }
 
+function hasLegacyState() {
+  try { return !!localStorage.getItem(LEGACY_KEY); } catch (e) { return false; }
+}
+
+/* False for a first-time visitor: the setup step runs before anything is saved. */
 function loadStore() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -1534,15 +1577,17 @@ function loadStore() {
       if (parsed && parsed.seasons && parsed.activeSeasonId) {
         store = parsed;
         // Backfill any missing device fields
-        store.device = Object.assign({ themeMode: 'auto', layout: 'card', sort: { field: 'manual', dir: 'asc' }, rawgKey: '', managePin: '' }, store.device || {});
+        store.device = Object.assign(defaultDevice(), store.device || {});
         if (archiveStraySeasons()) saveStore();
-        return;
+        return true;
       }
     }
   } catch (e) { console.warn('Failed to load store:', e); }
   store = defaultStore();
+  if (!hasLegacyState()) return false;
   applyLegacyState(store);
   saveStore();
+  return true;
 }
 
 function saveStore() {
@@ -2042,14 +2087,24 @@ function fireWompWomp(originX, originY) {
    ═══════════════════════════════════════════════════════════════════════════ */
 const modalBackdrop = $('modalBackdrop');
 const modalPanel = $('modalPanel');
-function openModal(html, wide) {
+let modalLocked = false;
+/* A locked modal can't be dismissed and makes the page behind it inert. */
+function openModal(html, wide, locked) {
+  modalLocked = !!locked;
   modalPanel.className = 'modal' + (wide ? ' wide' : '');
   modalPanel.innerHTML = html;
+  const heading = modalPanel.querySelector('h2');
+  if (heading) { heading.id = heading.id || 'modalHeading'; modalBackdrop.setAttribute('aria-labelledby', heading.id); }
+  document.querySelector('main').inert = modalLocked;
   modalBackdrop.classList.add('open');
 }
-function closeModal() { modalBackdrop.classList.remove('open'); modalPanel.innerHTML = ''; }
-modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalBackdrop.classList.contains('open')) closeModal(); });
+function closeModal() {
+  modalLocked = false;
+  document.querySelector('main').inert = false;
+  modalBackdrop.classList.remove('open'); modalPanel.innerHTML = '';
+}
+modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop && !modalLocked) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalBackdrop.classList.contains('open') && !modalLocked) closeModal(); });
 
 /* Two-tap-to-confirm on a button */
 function setupConfirmButton(btn, action, opts) {
@@ -2144,7 +2199,7 @@ function openPinModal() {
     if (!val) return err('Enter a PIN.');
     if (setup) {
       const c = $('pinConfirm').value.trim();
-      if (!/^\d{4,8}$/.test(val)) return err('Use 4 to 8 digits.');
+      if (!PIN_RE.test(val)) return err('Use 4 to 8 digits.');
       if (val !== c) return err('PINs do not match.');
       store.device.managePin = val; saveStore(); closeModal(); setMode('manage');
     } else {
@@ -2155,6 +2210,87 @@ function openPinModal() {
   $('pinGo').addEventListener('click', submit);
   modalPanel.querySelector('[data-close]').addEventListener('click', closeModal);
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIRST-RUN SETUP
+   ═══════════════════════════════════════════════════════════════════════════ */
+function openSetupModal() {
+  openModal(`
+    <h2>Set up your bounty board</h2>
+    <p class="sub">A few details and the hunt is on. You can change any of this later in Manage.</p>
+    <button type="button" class="preset-btn" id="suPreset">
+      <span class="preset-main">Use “Dad’s Annual”</span>
+      <span class="preset-sub">The original board: 10 classic games, $${DADS_ANNUAL.defaultBounty} default bounty</span>
+    </button>
+    <form id="suForm" novalidate>
+      <div class="field"><label for="suTitle">Board title <span class="req">*</span></label><input id="suTitle" autocomplete="off" aria-required="true" placeholder="Summer Game Bounty Hunt"></div>
+      <div class="field"><label for="suKid">Player’s name</label><input id="suKid" autocomplete="off" aria-describedby="suKidHint"><div class="hint" id="suKidHint">Optional. Shown in the footer.</div></div>
+      <div class="field-grid">
+        <div class="field"><label for="suPin">Manage PIN</label><input id="suPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" aria-describedby="suPinHint"><div class="hint" id="suPinHint">Optional, 4–8 digits. Grown-ups use it to edit the board; skip it and you’ll pick one at first unlock.</div></div>
+        <div class="field"><label for="suPin2">Confirm PIN</label><input id="suPin2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
+      </div>
+      <div class="field"><label for="suBounty">Default bounty ($) <span class="req">*</span></label><input id="suBounty" type="number" min="1" step="1" inputmode="numeric" value="${DADS_ANNUAL.defaultBounty}" aria-required="true" aria-describedby="suBountyHint"><div class="hint" id="suBountyHint">What a game pays when it has no bounty of its own.</div></div>
+      <div class="modal-row"><div class="label-text"><label class="label-main" for="suStarter">Start with 10 classic games</label><span class="label-sub" id="suStarterSub">Uncheck for an empty board you fill in Manage</span></div><span class="toggle-pill"><input type="checkbox" id="suStarter" checked aria-describedby="suStarterSub"></span></div>
+      <div class="af-status err" id="suErr" role="alert"></div>
+      <div class="af-status" id="suStatus" role="status"></div>
+      <input type="file" id="suFile" accept=".json,application/json" hidden>
+      <div class="modal-actions">
+        <button type="button" class="btn left" id="suImport">Import a backup instead</button>
+        <button type="submit" class="btn btn-primary">Start the hunt</button>
+      </div>
+    </form>`, false, true);
+  const form = $('suForm'), errEl = $('suErr');
+  const clearErr = () => { errEl.textContent = ''; $('suStatus').textContent = ''; form.querySelectorAll('[aria-invalid]').forEach(x => x.removeAttribute('aria-invalid')); };
+  const fail = (input, msg) => { errEl.textContent = msg; input.setAttribute('aria-invalid', 'true'); input.focus(); };
+  form.addEventListener('input', (e) => e.target.removeAttribute('aria-invalid'));
+  $('suPreset').addEventListener('click', () => {
+    clearErr();
+    $('suTitle').value = DADS_ANNUAL.title;
+    $('suBounty').value = DADS_ANNUAL.defaultBounty;
+    $('suStarter').checked = true;
+    $('suStatus').textContent = 'Filled in Dad’s Annual. Add a name and PIN if you like, then start the hunt.';
+    $('suKid').focus();
+  });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    clearErr();
+    const title = $('suTitle').value.trim();
+    const pin = $('suPin').value.trim(), pin2 = $('suPin2').value.trim();
+    const bounty = Number($('suBounty').value);
+    if (!title) return fail($('suTitle'), 'Give the board a title.');
+    if (pin && !PIN_RE.test(pin)) return fail($('suPin'), 'PIN must be 4 to 8 digits.');
+    if (pin !== pin2) return fail($('suPin2'), 'PINs do not match.');
+    if (!Number.isInteger(bounty) || bounty < 1) return fail($('suBounty'), 'Default bounty must be a whole number of dollars, 1 or more.');
+    const season = makeSeason({ title, kidName: $('suKid').value.trim(), defaultBounty: bounty });
+    if ($('suStarter').checked) season.games = starterGames();
+    store = storeWithSeason(season);
+    store.device.managePin = pin;
+    finishSetup();
+  });
+  $('suImport').addEventListener('click', () => $('suFile').click());
+  $('suFile').addEventListener('change', async () => {
+    const file = $('suFile').files[0];
+    if (!file) return;
+    clearErr();
+    try {
+      let data;
+      try { data = JSON.parse(await file.text()); } catch (e) { throw new Error('That file isn’t valid JSON.'); }
+      const backup = readBackup(data);
+      store = emptyStore();
+      applyBackup(backup, 'replace');
+      finishSetup();
+    } catch (e) {
+      $('suFile').value = '';
+      errEl.textContent = e && e.message ? e.message : 'Import failed.';
+      $('suImport').focus();
+    }
+  });
+  $('suTitle').focus();
+}
+function finishSetup() {
+  saveStore(); closeModal(); render();
+  const h = $('heroTitle'); h.tabIndex = -1; h.focus();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2429,6 +2565,19 @@ function archiveStraySeasons() {
   });
   return changed;
 }
+function applyBackup(backup, mode) {
+  if (mode === 'replace') {
+    const incoming = {};
+    backup.seasons.forEach(s => { incoming[s.id] = s; });
+    const activeId = incoming[backup.activeSeasonId] ? backup.activeSeasonId : backup.seasons[0].id;
+    if (backup.single) store.seasons[activeId] = incoming[activeId];
+    else store.seasons = incoming;
+    store.activeSeasonId = activeId;
+  } else {
+    backup.seasons.forEach(s => { store.seasons[s.id] = s; });
+  }
+  archiveStraySeasons();
+}
 function exportBackup() { downloadFile(`bounty-hunt-backup-${timestampSlug()}.json`, JSON.stringify(buildBackup(), null, 2)); }
 function exportSeasonJson() {
   const s = activeSeason();
@@ -2545,18 +2694,7 @@ async function doImport() {
     if (isJson) {
       let data;
       try { data = JSON.parse(text); } catch (e) { throw new Error('That file isn’t valid JSON.'); }
-      const backup = readBackup(data);
-      if (mode === 'replace') {
-        const incoming = {};
-        backup.seasons.forEach(s => { incoming[s.id] = s; });
-        const activeId = incoming[backup.activeSeasonId] ? backup.activeSeasonId : backup.seasons[0].id;
-        if (backup.single) store.seasons[activeId] = incoming[activeId];
-        else store.seasons = incoming;
-        store.activeSeasonId = activeId;
-      } else {
-        backup.seasons.forEach(s => { store.seasons[s.id] = s; });
-      }
-      archiveStraySeasons();
+      applyBackup(readBackup(data), mode);
       saveStore(); closeModal(); render();
       return;
     }
@@ -2648,7 +2786,7 @@ function openSettingsModal() {
     </div>`);
   modalPanel.querySelector('[data-close]').addEventListener('click', () => {
     const pin = $('setPin').value.trim();
-    if (pin) { if (!/^\d{4,8}$/.test(pin)) { alert('PIN must be 4 to 8 digits.'); return; } store.device.managePin = pin; }
+    if (pin) { if (!PIN_RE.test(pin)) { alert('PIN must be 4 to 8 digits.'); return; } store.device.managePin = pin; }
     store.device.rawgKey = $('setRawg').value.trim();
     saveStore(); closeModal();
   });
@@ -2686,10 +2824,11 @@ $('manageBtn').addEventListener('click', (e) => { e.stopPropagation(); openManag
 /* ═══════════════════════════════════════════════════════════════════════════
    INIT
    ═══════════════════════════════════════════════════════════════════════════ */
-loadStore();
+const hasBoard = loadStore();
 applyTheme();
-setMode(sessionStorage.getItem('bh_manage') === '1' ? 'manage' : 'user');
+setMode(hasBoard && sessionStorage.getItem('bh_manage') === '1' ? 'manage' : 'user');
 setView(viewFromHash());
+if (!hasBoard) openSetupModal();
 </script>
 </body>
 </html>

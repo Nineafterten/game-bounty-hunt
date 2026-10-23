@@ -5,6 +5,13 @@ a parent posts classic games with cash rewards; a kid captures the bounties by b
 them. Everything lives in one `index.html` with **no build step**; state is stored in the
 browser (localStorage) and backed up via JSON/CSV export.
 
+## First run
+
+A browser with no saved board gets a short setup: board title, the player's name, an optional
+Manage PIN and the default bounty, with a choice to start from the 10 classic games or an empty
+board. **Dad's Annual** is a one-tap preset that fills in the original board; **Import a backup
+instead** restores a JSON backup. Browsers that already have a board skip it.
+
 ## Two modes
 
 - **User (play)** — the default. The kid sets each game's outcome and watches the stats:
